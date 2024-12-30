@@ -1,0 +1,73 @@
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Environment files
+.env
+.env.*
+
+# Swagger auto-generated files
+swagger-output.json
+
+# Debug and runtime files
+*.pid
+*.seed
+*.gz
+*.log
+*.out
+
+# Build files
+dist/
+build/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test coverage reports
+coverage/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# Docker files
+docker-compose.override.yml
+docker-compose.dev.yml
+
+# PM2 files
+pm2-logs/
+pm2-runtime-*.json
+
+# Miscellaneous
+*.iml
+*.lock
+
+# Ignore MongoDB dump files
+dump/
+*.bson
+*.json
+
+#test files
+tests/
+testData/
+test*.js
+
+#Files
+uploads/

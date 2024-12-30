@@ -1,0 +1,237 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+ 
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+ 
+    --primary: 142.1 76.2% 36.3%;
+    --primary-foreground: 355.7 100% 97.3%;
+ 
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+ 
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+ 
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+ 
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 142.1 76.2% 36.3%;
+ 
+    --radius: 0.5rem;
+  }
+ 
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+ 
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+ 
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+ 
+    --primary: 142.1 70.6% 45.3%;
+    --primary-foreground: 144.9 80.4% 10%;
+ 
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+ 
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+ 
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+ 
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+ 
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 142.1 76.2% 36.3%;
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@media print {
+  @page {
+    margin: 15mm;
+    size: A4;
+  }
+  
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+
+  table {
+    width: 100% !important;
+  }
+}
+
+/* Add these custom styles for the date picker */
+.rdp {
+  --rdp-cell-size: 40px !important;
+  --rdp-accent-color: #22c55e !important;
+  --rdp-background-color: #e5e7eb !important;
+  margin: 0 !important;
+}
+
+.rdp-month {
+  background-color: white !important;
+}
+
+.rdp-day_selected, 
+.rdp-day_selected:focus-visible, 
+.rdp-day_selected:hover {
+  background-color: var(--rdp-accent-color) !important;
+  color: white !important;
+}
+
+.rdp-day_today {
+  font-weight: bold !important;
+  color: var(--rdp-accent-color) !important;
+}
+
+.rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
+  background-color: #f3f4f6 !important;
+}
+
+.rdp-nav_button:hover {
+  background-color: #f3f4f6 !important;
+}
+
+/* Calendar wrapper */
+.rdp-months {
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+/* Calendar header */
+.rdp-caption {
+  padding: 0 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Calendar navigation buttons */
+.rdp-nav_button {
+  width: 30px;
+  height: 30px;
+  padding: 0.25rem;
+  border-radius: 4px;
+}
+
+.rdp-nav_button:hover {
+  background-color: #f3f4f6;
+}
+
+/* Calendar days */
+.rdp-cell {
+  height: var(--rdp-cell-size);
+  width: var(--rdp-cell-size);
+  font-size: 0.875rem;
+  padding: 0;
+}
+
+.rdp-day {
+  height: var(--rdp-cell-size);
+  width: var(--rdp-cell-size);
+  border-radius: 4px;
+}
+
+/* Range selection */
+.rdp-day_range_start,
+.rdp-day_range_end {
+  background-color: var(--rdp-accent-color) !important;
+  color: white !important;
+}
+
+.rdp-day_range_middle {
+  background-color: #dcfce7 !important;
+  color: #166534 !important;
+}
+
+/* Additional calendar styles */
+.rdp-table {
+  margin: 0;
+  max-width: none;
+  width: 100%;
+}
+
+.rdp-head_cell {
+  font-weight: 600;
+  color: #4b5563;
+  padding: 0.5rem;
+}
+
+.rdp-button {
+  padding: 0.5rem;
+  border-radius: 4px;
+  color: #374151;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+
+.rdp-button:hover {
+  background-color: #f3f4f6;
+}
+
+.rdp-button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rdp-day_today:not(.rdp-day_selected) {
+  font-weight: bold;
+  color: var(--rdp-accent-color);
+}
+
+.rdp-day_selected {
+  background-color: var(--rdp-accent-color) !important;
+  font-weight: bold;
+  color: white !important;
+}
+
+.rdp-button_reset {
+  color: #6b7280;
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Calendar container */
+.calendar-container {
+  position: absolute;
+  z-index: 50;
+  margin-top: 0.5rem;
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
