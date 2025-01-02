@@ -71,3 +71,6 @@ test*.js
 
 #Files
 uploads/
+
+# Exclude package.json file
+!package.json
