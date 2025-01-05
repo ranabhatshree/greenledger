@@ -5,10 +5,11 @@ import { useParams } from "next/navigation";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card } from "@/components/ui/card";
 import { Loader } from "@/components/ui/loader";
-import { PartyLedgerTable } from "@/components/parties/party-ledger-table";
 import axiosInstance from "@/lib/api/axiosInstance";
 import { format } from "date-fns";
 import { TransactionTable } from "@/components/shared/transaction-table";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { DateRange } from "react-day-picker";
 
 interface Party {
     _id: string;
@@ -41,6 +42,22 @@ export default function PartyDetailsPage() {
     const [loading, setLoading] = useState(true);
     const [party, setParty] = useState<Party | null>(null);
     const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
+    const [dateRange, setDateRange] = useState<DateRange | undefined>({
+        from: new Date(new Date().getFullYear(), 0, 1), // Jan 1st of current year
+        to: new Date(new Date().getFullYear(), 11, 31), // Dec 31st of current year
+    });
+    const [fromDate, setFromDate] = useState<Date>(new Date(new Date().getFullYear(), 0, 1));
+    const [toDate, setToDate] = useState<Date>(new Date(new Date().getFullYear(), 11, 31));
+
+    const handleDateRangeChange = (range: DateRange | undefined) => {
+        setDateRange(range);
+        if (range?.from) {
+            setFromDate(range.from);
+        }
+        if (range?.to) {
+            setToDate(range.to);
+        }
+    };
 
     const fetchPartyDetails = async () => {
         try {
@@ -53,13 +70,11 @@ export default function PartyDetailsPage() {
 
     const fetchLedgerEntries = async () => {
         try {
-            // Get current year's data
-            const currentYear = new Date().getFullYear();
-            const fromDate = `${currentYear}-01-01`;
-            const toDate = `${currentYear}-12-31`;
+            const from = format(fromDate, "yyyy-MM-dd");
+            const to = format(toDate, "yyyy-MM-dd");
 
             const response = await axiosInstance.get(
-                `/ledgers/party/${params.id}?from=${fromDate}&to=${toDate}`
+                `/ledgers/party/${params.id}?from=${from}&to=${to}`
             );
             const entries = response.data.data.entries;
             const formattedEntries = entries.map((entry: any) => ({
@@ -90,6 +105,13 @@ export default function PartyDetailsPage() {
             fetchData();
         }
     }, [params.id]);
+
+    // Add this effect to refetch when dates change
+    useEffect(() => {
+        if (params.id) {
+            fetchLedgerEntries();
+        }
+    }, [fromDate, toDate, params.id]);
 
     if (loading) return <Loader />;
     if (!party) return <div>Party not found</div>;
@@ -129,6 +151,15 @@ export default function PartyDetailsPage() {
                 </Card>
 
                 <div className="mt-4 lg:mt-6">
+                <div className="flex-1 flex justify-center mx-4 relative z-10">
+                    <DateRangePicker
+                        from={dateRange?.from}
+                        to={dateRange?.to}
+                        onSelect={handleDateRangeChange}
+                        className="w-auto min-w-[300px] max-w-[400px]"
+                    />
+                </div>
+
                     <TransactionTable
                         title="Ledger Entries"
                         data={ledgerEntries}
@@ -149,12 +180,30 @@ export default function PartyDetailsPage() {
                             {
                                 header: "DR Amount",
                                 accessorKey: "drAmount",
+                                cell: (transaction: any) => {
+                                    const amount = transaction.drAmount;
+                                    return amount ? amount.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '';
+                                }
                             },
                             {
                                 header: "CR Amount",
                                 accessorKey: "crAmount",
+                                cell: (transaction: any) => {
+                                    const amount = transaction.crAmount;
+                                    return amount ? amount.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '';
+                                }
                             }
                         ]}
+                        searchableColumns={[
+                            {
+                              id: "date",
+                              value: (row: any) => row.date,
+                            },
+                            {
+                              id: "invoiceNumber",
+                              value: (row: any) => row.invoiceNumber || "",
+                            }
+                          ]}
                     />
                 </div>
             </div>
