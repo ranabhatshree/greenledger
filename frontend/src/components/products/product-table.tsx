@@ -186,9 +186,9 @@ export const ProductTable = ({ onAddSuccess, refreshTrigger }: ProductTableProps
         data={filteredProducts}
         columns={columns}
         searchPlaceholder="Search products..."
-        loading={loading}
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
+        loading={loading}
       />
       
       {(editProduct || showDeleteModal) && (

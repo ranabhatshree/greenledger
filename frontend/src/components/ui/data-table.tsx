@@ -20,35 +20,25 @@ export interface Column<T> {
   id?: string;
 }
 
-export interface DataTableProps<TData> {
+export interface DataTableProps<T> {
+  data: T[];
+  columns: Column<T>[];
   title?: string;
-  data: TData[];
-  columns: Column<TData>[];
   searchPlaceholder?: string;
-  searchableColumns?: {
-    id: string;
-    value: (row: TData) => string;
-  }[];
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+  loading?: boolean;
 }
 
-export function DataTable<T>({
+export const DataTable = <T,>({ 
+  data, 
+  columns, 
   title,
-  data,
-  columns,
   searchPlaceholder = "Search...",
-  searchableColumns
-}: DataTableProps<T>) {
-  const [searchValue, setSearchValue] = useState("");
-
-  const filteredData = useMemo(() => {
-    if (!searchValue || !searchableColumns) return data;
-    return data.filter(row => 
-      searchableColumns.some(column => 
-        column.value(row).toLowerCase().includes(searchValue.toLowerCase())
-      )
-    );
-  }, [data, searchValue, searchableColumns]);
-
+  searchValue,
+  onSearchChange,
+  loading
+}: DataTableProps<T>) => {
   return (
     <Card className="overflow-hidden p-4 lg:p-6">
       <div className="flex flex-col gap-4">
@@ -56,11 +46,11 @@ export function DataTable<T>({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input 
+            <Input
               className="pl-10" 
               placeholder={searchPlaceholder}
               value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
+              onChange={(e) => onSearchChange?.(e.target.value)}
             />
           </div>
         </div>
@@ -74,23 +64,37 @@ export function DataTable<T>({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredData.map((item, rowIndex) => (
-                <TableRow key={rowIndex}>
-                  {columns.map((column, colIndex) => (
-                    <TableCell key={colIndex}>
-                      {column.cell
-                        ? column.cell(item, rowIndex)
-                        : column.accessorKey
-                        ? String(item[column.accessorKey])
-                        : null}
-                    </TableCell>
-                  ))}
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="text-center">
+                    Loading...
+                  </TableCell>
                 </TableRow>
-              ))}
+              ) : data.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="text-center">
+                    No results found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                data.map((item, rowIndex) => (
+                  <TableRow key={rowIndex}>
+                    {columns.map((column, colIndex) => (
+                      <TableCell key={colIndex}>
+                        {column.cell
+                          ? column.cell(item, rowIndex)
+                          : column.accessorKey
+                          ? String(item[column.accessorKey])
+                          : null}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>
       </div>
     </Card>
   );
-} 
+}; 
