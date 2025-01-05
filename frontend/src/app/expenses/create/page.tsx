@@ -271,6 +271,22 @@ export default function CreateExpensePage() {
               />
             </div>
           </div>
+          
+          <div className="flex items-center space-x-2 mt-6">
+            <Checkbox
+              id="isVatable"
+              checked={formData.isVatable}
+              onCheckedChange={(checked) =>
+                setFormData(prev => ({ ...prev, isVatable: checked as boolean }))
+              }
+            />
+            <label
+              htmlFor="isVatable"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              VAT Bill
+            </label>
+          </div>
 
           <div className="mt-6">
             <label className="block text-sm font-medium mb-2">Description</label>
@@ -287,22 +303,6 @@ export default function CreateExpensePage() {
               onImagesChange={setUploadedImages}
               images={uploadedImages}
             />
-          </div>
-
-          <div className="flex items-center space-x-2 mt-6">
-            <Checkbox
-              id="isVatable"
-              checked={formData.isVatable}
-              onCheckedChange={(checked) =>
-                setFormData(prev => ({ ...prev, isVatable: checked as boolean }))
-              }
-            />
-            <label
-              htmlFor="isVatable"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              Check if this is a VAT bill
-            </label>
           </div>
 
           <div className="flex justify-end gap-4 mt-6">
