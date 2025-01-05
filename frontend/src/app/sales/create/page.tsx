@@ -90,7 +90,7 @@ export default function CreateSalePage() {
     { id: 1, itemName: "", quantity: 1, rate: 0, amount: 0 },
   ]);
   const [note, setNote] = useState("");
-  const [isDirectEntry, setIsDirectEntry] = useState(false);
+  const [isDirectEntry, setIsDirectEntry] = useState(true);
   const [date, setDate] = useState<Date>();
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -414,18 +414,18 @@ export default function CreateSalePage() {
 
           <div className="flex gap-2 py-8">
             <Button 
-              variant="outline" 
-              className={cn("bg-blue-50 text-blue-600", !isDirectEntry && "bg-blue-100")}
-              onClick={() => setIsDirectEntry(false)}
-            >
-              Add by Item
-            </Button>
-            <Button 
               variant="outline"
-              className={cn(isDirectEntry && "bg-blue-100")}
+              className={cn("bg-blue-50 text-blue-600", isDirectEntry && "bg-blue-100")}
               onClick={() => setIsDirectEntry(true)}
             >
               Direct Entry
+            </Button>
+            <Button 
+              variant="outline"
+              className={cn(!isDirectEntry && "bg-blue-100")}
+              onClick={() => setIsDirectEntry(false)}
+            >
+              Add by Item
             </Button>
           </div>
 
@@ -503,7 +503,7 @@ export default function CreateSalePage() {
                             <SelectContent>
                               {products.map((product) => (
                                 <SelectItem 
-                                  key={product.name} 
+                                  key={product._id}
                                   value={product.name}
                                   className="flex items-center gap-2 py-2"
                                 >

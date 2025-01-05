@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { ArrowRight, CheckCircle, Github, Leaf } from 'lucide-react'
 import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 
 export default function HomePage() {
   const [isVisible, setIsVisible] = useState(false)
@@ -19,15 +20,25 @@ export default function HomePage() {
             <Leaf className="h-8 w-8 text-green-600" />
             <span className="text-2xl font-bold text-green-800">GreenLedger</span>
           </div>
-          <Link 
-            href="https://github.com/greenledger/greenledger" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex items-center space-x-2 text-green-700 hover:text-green-900 transition-colors"
-          >
-            <Github className="h-5 w-5" />
-            <span>GitHub</span>
-          </Link>
+          <div className="flex items-center space-x-4">
+            <Link 
+              href="https://github.com/ranabhatshree/greenledger" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center space-x-2 text-green-700 hover:text-green-900 transition-colors"
+            >
+              <Github className="h-5 w-5" />
+              <span>GitHub</span>
+            </Link>
+            <Link 
+              href="/login" 
+              rel="noopener noreferrer"
+            >
+              <Button variant="outline" className="text-green-700 border-green-700 hover:bg-green-100">
+                Login
+              </Button>
+            </Link>
+          </div>
         </nav>
       </header>
 
@@ -76,7 +87,7 @@ export default function HomePage() {
               GreenLedger is free and open source. Join our community and contribute to sustainable accounting practices.
             </p>
             <Link 
-              href="https://github.com/greenledger/greenledger" 
+              href="https://github.com/ranabhatshree/greenledger" 
               target="_blank" 
               rel="noopener noreferrer"
               className="inline-flex items-center px-6 py-3 text-lg font-semibold text-white bg-green-600 rounded-full hover:bg-green-700 transition-colors"
