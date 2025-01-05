@@ -182,6 +182,24 @@ export default function DashboardPage() {
               accessorKey: "description",
             }
           ]}
+          searchableColumns={[
+            {
+              id: "date",
+              value: (row: BaseTransaction) => row.date,
+            },
+            {
+              id: "type",
+              value: (row: BaseTransaction) => row.type || "",
+            },
+            {
+              id: "description",
+              value: (row: BaseTransaction) => row.description || "",
+            },
+            {
+              id: "invoiceNumber",
+              value: (row: BaseTransaction) => row.invoiceNumber || "",
+            } 
+          ]}
         />
       </div>
     </>
