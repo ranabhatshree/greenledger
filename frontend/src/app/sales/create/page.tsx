@@ -253,7 +253,7 @@ export default function CreateSalePage() {
 
       const payload: SaleInvoicePayload = {
         invoiceNumber,
-        invoiceDate: date.toISOString().split('T')[0],
+        invoiceDate: format(date, 'yyyy-MM-dd'),
         billingParty,
         discountPercentage: totalDiscount,
       };

@@ -89,7 +89,7 @@ export default function InvoiceViewPage() {
 
   return (
     <AppLayout>
-      <div className="flex flex-col gap-6 max-w-[1000px] mx-auto print:m-0 print:w-full">
+      <div className="flex flex-col gap-6 w-full mx-auto print:m-0 print:w-full">
         <div className="flex items-center justify-between print:hidden">
           <h1 className="text-2xl font-bold">Invoice #{sale.invoiceNumber}</h1>
           <Button 
