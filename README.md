@@ -1,5 +1,13 @@
 # GreenLedger - OpenSource Accounting Software for Small Businesses
 
+### Screenshots
+
+<p align="center">
+  <img src="screenshots/0.png" width="600"/>
+  <br/>
+  <img src="screenshots/1.png" width="600"/>
+</p>
+
 ## Overview
 
 GreenLedger is an open-source accounting software designed specifically for small businesses. It provides a comprehensive solution for managing finances, tracking expenses, generating reports, and facilitating transactions. The software is built using Node.js for the backend and Next.js for the frontend, ensuring a robust and scalable architecture. With features like user authentication, role-based access control, and detailed reporting, this application aims to simplify financial management for small business owners.
