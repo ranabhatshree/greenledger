@@ -32,6 +32,7 @@ export interface BaseTransaction {
   crAmount?:number;
   invoiceDate?: Date;
   editHistoryLogs?: any[];
+  runningBalance?: number;
 }
 
 interface TransactionTableProps {
@@ -44,6 +45,7 @@ interface TransactionTableProps {
     value: (row: BaseTransaction) => string;
   }[];
   transactionType?: string;
+  footer?: React.ReactNode;
 }
 
 const iconMap: Record<string, JSX.Element> = {
@@ -68,7 +70,8 @@ export function TransactionTable({
   data, 
   showType, 
   columns: customColumns,
-  searchableColumns: customSearchableColumns 
+  searchableColumns: customSearchableColumns,
+  footer
 }: TransactionTableProps) {
   const defaultColumns: Column<BaseTransaction>[] = [
     {
@@ -186,6 +189,7 @@ export function TransactionTable({
       searchPlaceholder="Search..."
       searchValue={searchValue}
       onSearchChange={setSearchValue}
+      footer={footer}
     />
   );
 } 
