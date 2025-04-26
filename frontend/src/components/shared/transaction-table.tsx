@@ -3,6 +3,7 @@
 import * as React from "react";
 import { DollarSign, ArrowUpRight, ArrowDown, CheckCircle } from "lucide-react";
 import { DataTable, Column } from "@/components/ui/data-table";
+import { useState, useMemo } from "react";
 
 export interface BaseTransaction {
   id: string | number;
@@ -161,16 +162,30 @@ export function TransactionTable({
     },
   ];
 
+  const [searchValue, setSearchValue] = useState("");
+  
   const columns = customColumns || defaultColumns;
   const searchableColumns = customSearchableColumns || defaultSearchableColumns;
+
+  const filteredData = useMemo(() => {
+    if (!searchValue) return data;
+    
+    return data.filter(row => {
+      return searchableColumns.some(column => {
+        const value = column.value(row);
+        return value.toLowerCase().includes(searchValue.toLowerCase());
+      });
+    });
+  }, [data, searchValue, searchableColumns]);
 
   return (
     <DataTable<BaseTransaction>
       title={title}
-      data={data}
+      data={filteredData}
       columns={columns}
       searchPlaceholder="Search..."
-      searchableColumns={searchableColumns}
+      searchValue={searchValue}
+      onSearchChange={setSearchValue}
     />
   );
 } 
