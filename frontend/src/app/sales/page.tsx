@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
-import { ArrowRightIcon, EyeIcon, FileInputIcon, Plus } from "lucide-react";
+import { ArrowRightIcon, EyeIcon, FileInputIcon, Plus, PencilIcon, HistoryIcon } from "lucide-react";
 import { Loader } from "@/components/ui/loader";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 import Link from "next/link";
@@ -12,6 +12,26 @@ import { DateRangePicker } from "@/components/ui/date-range-picker";
 import axiosInstance from "@/lib/api/axiosInstance";
 import { DateRange } from "react-day-picker";
 import { TransactionTable, BaseTransaction } from "@/components/shared/transaction-table";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+interface EditHistoryLog {
+  description: string;
+  editedBy: string;
+  editedAt: string;
+  _id: string;
+}
+
+interface SaleTransaction extends BaseTransaction {
+  editHistoryLogs?: EditHistoryLog[];
+}
 
 interface SaleResponse {
   _id: string;
@@ -24,16 +44,26 @@ interface SaleResponse {
   billPhotos: string[];
   description: string;
   note: string;
+  editHistoryLogs: any[];
 }
 
 export default function SalesPage() {
   const [loading, setLoading] = useState(true);
-  const [sales, setSales] = useState<BaseTransaction[]>([]);
+  const [sales, setSales] = useState<SaleTransaction[]>([]);
   const [dateRange, setDateRange] = useState<DateRange>({
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date())
   });
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingSale, setEditingSale] = useState<SaleTransaction | null>(null);
+  const [editedInvoiceNumber, setEditedInvoiceNumber] = useState("");
+  const [editedAmount, setEditedAmount] = useState("");
+  const [editLoading, setEditLoading] = useState(false);
   const { toast } = useToast();
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [viewingSaleHistory, setViewingSaleHistory] = useState<string | null>(null);
+  const [historyLogs, setHistoryLogs] = useState<EditHistoryLog[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const fetchSales = async (from?: Date, to?: Date) => {
     try {
@@ -51,7 +81,7 @@ export default function SalesPage() {
         throw new Error('Failed to fetch sales data');
       }
       
-      const transformedSales: BaseTransaction[] = response.data.sales.map((sale: SaleResponse) => ({
+      const transformedSales: SaleTransaction[] = response.data.sales.map((sale: SaleResponse) => ({
         id: sale._id,
         type: "Sale",
         date: format(new Date(sale.invoiceDate), 'MMM dd, yyyy'),
@@ -63,6 +93,7 @@ export default function SalesPage() {
         billPhotos: sale.billPhotos,
         description: sale.description,
         note: sale.note,
+        editHistoryLogs: sale.editHistoryLogs,
       }));
 
       setSales(transformedSales);
@@ -81,6 +112,63 @@ export default function SalesPage() {
     if (newDateRange) {
       setDateRange(newDateRange);
       fetchSales(newDateRange.from, newDateRange.to);
+    }
+  };
+
+  const handleEditClick = (sale: SaleTransaction) => {
+    setEditingSale(sale);
+    setEditedInvoiceNumber(sale.invoiceNumber || "");
+    setEditedAmount(sale.amount.replace(/,/g, ""));
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingSale) return;
+    
+    try {
+      setEditLoading(true);
+      const response = await axiosInstance.put(`/sales/${editingSale.id}`, {
+        invoiceNumber: editedInvoiceNumber,
+        grandTotal: parseFloat(editedAmount)
+      });
+      
+      if (response.status === 200) {
+        const updatedSales = sales.map(sale => {
+          if (sale.id === editingSale.id) {
+            return {
+              ...sale,
+              invoiceNumber: editedInvoiceNumber,
+              amount: parseFloat(editedAmount).toLocaleString()
+            };
+          }
+          return sale;
+        });
+        
+        setSales(updatedSales);
+        setEditDialogOpen(false);
+        
+        toast({
+          title: "Success",
+          description: "Sale updated successfully",
+          variant: "default"
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to update sale. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleHistoryClick = (transaction: any) => {
+    if (transaction.editHistoryLogs && transaction.editHistoryLogs.length > 0) {
+      setHistoryLogs(transaction.editHistoryLogs);
+      setHistoryDialogOpen(true);
     }
   };
 
@@ -148,28 +236,131 @@ export default function SalesPage() {
                   </span>
                 ),
               },
+              {
+                header: "Actions",
+                cell: (transaction) => (
+                  <div className="flex items-center space-x-2">
+                    <span
+                      className="inline-flex rounded-full px-2 py-1 text-xs font-semibold cursor-pointer"
+                      onClick={() => handleEditClick(transaction as BaseTransaction)}
+                    >
+                      <PencilIcon className="h-4 w-4 text-black" />
+                    </span>
+                    {(transaction.editHistoryLogs?.length ?? 0) > 0 ? (
+                      <span
+                        className="inline-flex rounded-full px-2 py-1 text-xs font-semibold cursor-pointer"
+                        onClick={() => handleHistoryClick(transaction)}
+                      >
+                        <HistoryIcon className="h-4 w-4 text-black" />
+                      </span>
+                    ) : null}
+                  </div>
+                ),
+              },
             ]}
             searchableColumns={[
               {
                 id: "date",
-                value: (row: BaseTransaction) => row.date,
+                value: (row: SaleTransaction) => row.date,
               },
               {
                 id: "billingParty",
-                value: (row: BaseTransaction) => row.billingParty || "",
+                value: (row: SaleTransaction) => row.billingParty || "",
               },
               {
                 id: "invoiceNumber",
-                value: (row: BaseTransaction) => row.invoiceNumber || "",
+                value: (row: SaleTransaction) => row.invoiceNumber || "",
               },
               {
                 id: "amount",
-                value: (row: BaseTransaction) => row.amount,
+                value: (row: SaleTransaction) => row.amount,
               },
             ]}
           />
         </div>
       </div>
+
+      <Dialog open={editDialogOpen} onOpenChange={(open) => {
+        if (!editLoading) setEditDialogOpen(open);
+      }}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Sale</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="invoiceNumber" className="text-right">
+                Invoice Number
+              </Label>
+              <Input
+                id="invoiceNumber"
+                value={editedInvoiceNumber}
+                onChange={(e) => setEditedInvoiceNumber(e.target.value)}
+                className="col-span-3"
+                disabled={editLoading}
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="amount" className="text-right">
+                Amount
+              </Label>
+              <Input
+                id="amount"
+                type="number"
+                value={editedAmount}
+                onChange={(e) => setEditedAmount(e.target.value)}
+                className="col-span-3"
+                disabled={editLoading}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={editLoading}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={editLoading}>
+              {editLoading ? <Loader /> : null}
+              {editLoading ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit History</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-4 max-h-[400px] overflow-y-auto">
+              {historyLogs.length > 0 ? (
+                historyLogs.map((log, index) => (
+                  <div key={log._id} className="relative pl-6 pb-6">
+                    {/* Timeline connector */}
+                    {index < historyLogs.length - 1 && (
+                      <div className="absolute left-2 top-4 h-full w-0.5 bg-gray-200"></div>
+                    )}
+                    {/* Timeline dot */}
+                    <div className="absolute left-0 top-1.5 h-4 w-4 rounded-full bg-green-500"></div>
+                    {/* Log content */}
+                    <div className="bg-gray-50 p-3 rounded-lg">
+                      <p className="text-sm">{log.description}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(log.editedAt).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-gray-500 py-4">No edit history available.</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setHistoryDialogOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 } 

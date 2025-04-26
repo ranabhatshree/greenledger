@@ -30,6 +30,7 @@ export interface BaseTransaction {
   drAmount?:number;
   crAmount?:number;
   invoiceDate?: Date;
+  editHistoryLogs?: any[];
 }
 
 interface TransactionTableProps {
