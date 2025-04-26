@@ -41,6 +41,13 @@ const SalesSchema = new mongoose.Schema({
     note: { type: String, default: null },
     isVatable: { type: Boolean, default: true }, // Taxable flag
 
+    // Edit history logs
+    editHistoryLogs: [{
+        description: { type: String, required: true },
+        editedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        editedAt: { type: Date, default: Date.now }
+    }],
+
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },

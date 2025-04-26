@@ -95,10 +95,83 @@ const createSaleSchema = Joi.object({
     return value;
 });
 
-// Update Sale Validation Schema
-const updateSaleSchema = createSaleSchema.fork(
-    ['invoiceNumber', 'invoiceDate', 'billingParty'], 
-    (schema) => schema.optional()
-);
+// Update Sale Validation Schema - defined separately to remove the custom validation constraint
+const updateSaleSchema = Joi.object({
+    invoiceNumber: Joi.string().optional().messages({
+        'string.base': 'Invoice number must be a string',
+    }),
+    invoiceDate: Joi.date().optional().messages({
+        'date.base': 'Invoice date must be a valid date',
+    }),
+    billingParty: Joi.alternatives()
+        .try(Joi.string(), Joi.object())
+        .optional()
+        .messages({
+            'any.required': 'Billing party is required',
+        }),
+    items: Joi.array()
+        .items(
+            Joi.object({
+                productId: Joi.string()
+                    .required()
+                    .external(isValidProductId) // External async validation
+                    .messages({
+                        'any.required': 'Product ID is required',
+                        'string.base': 'Product ID must be a valid string',
+                    }),
+                quantity: Joi.number().positive().required().messages({
+                    'number.positive': 'Quantity must be a positive number',
+                    'any.required': 'Quantity is required',
+                })
+            })
+        )
+        .optional(),
+    directEntry: Joi.object({
+        description: Joi.string().required().messages({
+            'any.required': 'Description is required',
+            'string.base': 'Description must be a string',
+        }),
+        amount: Joi.number().positive().required().messages({
+            'number.positive': 'Amount must be a positive number',
+            'any.required': 'Amount is required',
+        }),
+    }).optional(),
+    discountPercentage: Joi.number().min(0).max(100).optional().messages({
+        'number.min': 'Discount percentage must be at least 0%',
+        'number.max': 'Discount percentage cannot exceed 100%',
+    }),
+    billPhotos: Joi.array()
+        .items(Joi.string().uri().regex(validImageExtensions).messages({
+            'string.base': 'Each bill photo must be a string',
+            'string.uri': 'Each bill photo must be a valid URL',
+            'string.pattern.base': 'Each bill photo must be a valid image URL (jpg, jpeg, png, gif)',
+        }))
+        .max(5)
+        .optional()
+        .allow(null)
+        .messages({
+            'array.max': 'You can upload a maximum of 5 photos',
+        }),
+    note: Joi.string().optional().allow(null, '').messages({
+        'string.base': 'Note must be a string',
+    }),
+    // Allow calculated fields in updates
+    grandTotal: Joi.number().optional(),
+    subTotal: Joi.number().optional(), 
+    taxableAmount: Joi.number().optional(),
+    vatAmount: Joi.number().optional(),
+    discountAmount: Joi.number().optional()
+}).custom((value, helpers) => {
+    // Only validate the constraint if both items and directEntry are present
+    const hasItems = value.items && value.items.length > 0;
+    const hasDirectEntry = value.directEntry && value.directEntry.description;
+
+    // Only fail if both are provided
+    if (hasItems && hasDirectEntry) {
+        return helpers.message('Cannot provide both items and direct entry.');
+    }
+
+    return value;
+});
 
 module.exports = { createSaleSchema, updateSaleSchema };

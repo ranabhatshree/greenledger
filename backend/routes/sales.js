@@ -11,7 +11,6 @@ const { protect, roleBasedAccess } = require('../middlewares/authMiddleware');
 const upload = require('../middlewares/fileUploadMiddleware');
 
 const router = express.Router();
-
 // Create Sale
 router.post(
     '/',

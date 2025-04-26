@@ -1,8 +1,9 @@
 {
   "name": "adorabooks-backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
+    "dev": "nodemon app.js",
     "test": "jest --runInBand"
   },
   "keywords": [],
