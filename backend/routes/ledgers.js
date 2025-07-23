@@ -6,6 +6,7 @@ const Expenses = require("../models/Expenses");
 const Users = require("../models/User");
 const Purchases = require("../models/Purchases");
 const Payments = require("../models/Payments");
+const Returns = require("../models/Returns");
 const moment = require("moment"); // Use moment.js or any date utility library
 const mongoose = require("mongoose")
 
@@ -63,7 +64,7 @@ router.get(
       }
 
       // Check if any transactions exist for this user with correct field names
-      const [hasUserSales, hasUserPurchases, hasUserPayments] = await Promise.all([
+      const [hasUserSales, hasUserPurchases, hasUserPayments, hasUserReturns] = await Promise.all([
         Sales.exists({ 
           billingParty: userId,
           invoiceDate: { $gte: startDate, $lte: endDate },
@@ -78,11 +79,15 @@ router.get(
           paidBy: userId,
           invoiceDate: { $gte: startDate, $lte: endDate },
           status: { $ne: "cancelled" }
+        }),
+        Returns.exists({ 
+          returnedBy: userId,
+          createdAt: { $gte: startDate, $lte: endDate }
         })
       ]);
 
       // If no transactions exist at all, return early
-      if (!hasUserSales && !hasUserPurchases && !hasUserPayments) {
+      if (!hasUserSales && !hasUserPurchases && !hasUserPayments && !hasUserReturns) {
         return res.status(404).json({
           status: "error",
           message: "No transactions found for this user in the specified date range"
@@ -90,7 +95,7 @@ router.get(
       }
 
       // Fetch data from collections where transactions exist
-      const [sales, purchases, payments] = await Promise.all([
+      const [sales, purchases, payments, returns] = await Promise.all([
         hasUserSales ? Sales.find(
           {
             billingParty: userId,
@@ -116,6 +121,14 @@ router.get(
             status: { $ne: "cancelled" },
           },
           "invoiceDate invoiceNumber amount receivedOrPaid"
+        ).lean() : [],
+
+        hasUserReturns ? Returns.find(
+          {
+            returnedBy: userId,
+            createdAt: { $gte: startDate, $lte: endDate },
+          },
+          "createdAt invoiceNumber amount description"
         ).lean() : []
       ]);
 
@@ -147,6 +160,15 @@ router.get(
           drAmount: payment.receivedOrPaid ? 0 : payment.amount,
           crAmount: payment.receivedOrPaid ? payment.amount : 0 ,
           particulars: payment.receivedOrPaid ? "PAYMENT RECEIVED" : "PAYMENT SENT",
+        })),
+        ...returns.map(returnItem => ({
+          date: returnItem.createdAt,
+          invoiceNumber: returnItem.invoiceNumber,
+          amount: returnItem.amount,
+          type: "Returns",
+          drAmount: 0,
+          crAmount: returnItem.amount,
+          particulars: `RETURN: ${returnItem.description}`
         }))
       ];
 
@@ -157,7 +179,8 @@ router.get(
       const totals = {
         sales: sales.reduce((sum, sale) => sum + sale.grandTotal, 0),
         purchases: purchases.reduce((sum, purchase) => sum + purchase.amount, 0),
-        payments: payments.reduce((sum, payment) => sum + payment.amount, 0)
+        payments: payments.reduce((sum, payment) => sum + payment.amount, 0),
+        returns: returns.reduce((sum, returnItem) => sum + returnItem.amount, 0)
       };
 
       res.status(200).json({

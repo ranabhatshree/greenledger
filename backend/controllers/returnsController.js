@@ -3,14 +3,14 @@ const User = require('../models/User');
 const { createReturnSchema, updateReturnSchema } = require('../validators/returnsValidator');
 
 // Create Return
-const createReturn = async (req, res) => {
+const createReturn = async (req, res, next) => {
     try {
         const { error, value } = createReturnSchema.validate(req.body);
         if (error) {
             return res.status(400).json({ message: error.details[0].message });
         }
 
-        const { amount, taxableAmount, invoiceNumber, returnedBy, description } = value;
+        const { amount, invoiceNumber, returnedBy, description } = value;
 
         // Validate if the returner exists
         const returner = await User.findById(returnedBy);
@@ -20,7 +20,6 @@ const createReturn = async (req, res) => {
 
         const returnEntry = new Returns({
             amount,
-            taxableAmount,
             invoiceNumber,
             createdBy: req.user.id, // Populated by `protect` middleware
             returnedBy,
@@ -35,7 +34,7 @@ const createReturn = async (req, res) => {
 };
 
 // Update Return
-const updateReturn = async (req, res) => {
+const updateReturn = async (req, res, next) => {
     try {
         const { id } = req.params;
         const { error, value } = updateReturnSchema.validate(req.body);
@@ -58,11 +57,29 @@ const updateReturn = async (req, res) => {
 };
 
 // View All Returns
-const viewReturns = async (req, res) => {
+const viewReturns = async (req, res, next) => {
     try {
-        const returns = await Returns.find()
+        const { from, to } = req.query;
+        
+        // Build date filter similar to other controllers
+        let dateFilter = {};
+        if (from || to) {
+            dateFilter.createdAt = {};
+            if (from) {
+                dateFilter.createdAt.$gte = new Date(from);
+            }
+            if (to) {
+                // Add one day to include the entire 'to' date
+                const toDate = new Date(to);
+                toDate.setDate(toDate.getDate() + 1);
+                dateFilter.createdAt.$lt = toDate;
+            }
+        }
+
+        const returns = await Returns.find(dateFilter)
             .populate('createdBy', 'name email role')
-            .populate('returnedBy', 'name email');
+            .populate('returnedBy', 'name email')
+            .sort({ createdAt: -1 });
 
         res.status(200).json({ returns });
     } catch (error) {
@@ -71,7 +88,7 @@ const viewReturns = async (req, res) => {
 };
 
 // Get Return by ID
-const getReturnById = async (req, res) => {
+const getReturnById = async (req, res, next) => {
     try {
         const { id } = req.params;
 
@@ -90,7 +107,7 @@ const getReturnById = async (req, res) => {
 };
 
 // Delete Return
-const deleteReturn = async (req, res) => {
+const deleteReturn = async (req, res, next) => {
     try {
         const { id } = req.params;
 

@@ -9,6 +9,7 @@ import {
   Truck,
   FileSpreadsheet,
   Banknote,
+  RotateCcw,
 } from "lucide-react";
 import axiosInstance from "@/lib/api/axiosInstance";
 
@@ -20,6 +21,7 @@ export const menuItems: MenuItem[] = [
   { icon: ArrowUpRight, label: "Expenses", href: "/expenses" },
   { icon: Truck, label: "Purchases", href: "/purchases" },
   { icon: Banknote, label: "Payments", href: "/payments" },
+  { icon: RotateCcw, label: "Returns", href: "/returns" },
   { icon: Package, label: "Products", href: "/products" },
   { icon: FileSpreadsheet, label: "Reports", href: "/reports" },
   { icon: Settings, label: "Settings", href: "/settings" },

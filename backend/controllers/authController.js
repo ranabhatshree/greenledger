@@ -327,6 +327,58 @@ const resetPassword = async (req, res) => {
   }
 };
 
+const confirmResetPassword = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    // Validate inputs
+    const schema = Joi.object({
+      token: Joi.string().required().messages({
+        'any.required': 'Token is required',
+        'string.base': 'Token must be a string',
+      }),
+      password: Joi.string().min(8).required().messages({
+        'string.min': 'Password must be at least 8 characters long',
+        'any.required': 'Password is required',
+      }),
+    });
+
+    const { error } = schema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ 
+        message: error.details[0].message.replace(/['"]+/g, "") 
+      });
+    }
+
+    // Find user with the reset token
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() } // Check if token has not expired
+    });
+
+    if (!user) {
+      return res.status(400).json({ 
+        message: "Invalid or expired password reset token" 
+      });
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Update user password and clear reset token
+    user.password = hashedPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    res.status(200).json({ 
+      message: "Password reset successfully. You can now login with your new password." 
+    });
+  } catch (error) {
+    next(error); // Forward the error to the error handler middleware
+  }
+};
+
 const getSingleUser = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -374,5 +426,6 @@ module.exports = {
   getUsersByRole,
   logoutUser,
   resetPassword,
+  confirmResetPassword,
   getSingleUser,
 };

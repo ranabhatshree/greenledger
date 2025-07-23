@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Menu } from "lucide-react";
+import { Search, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,12 +12,15 @@ import {
 import { useAppDispatch } from "@/lib/hooks";
 import { logout } from "@/lib/features/auth/authSlice";
 import { useRouter } from "next/navigation";
+import { getThemeColor } from "@/lib/utils";
 
 interface TopNavProps {
   onMenuClick: () => void;
+  onToggleCollapse: () => void;
+  isCollapsed: boolean;
 }
 
-export function TopNav({ onMenuClick }: TopNavProps) {
+export function TopNav({ onMenuClick, onToggleCollapse, isCollapsed }: TopNavProps) {
   const dispatch = useAppDispatch();
   const router = useRouter();
 
@@ -33,6 +36,7 @@ export function TopNav({ onMenuClick }: TopNavProps) {
     <nav className="fixed top-0 left-0 right-0 z-40 border-b bg-white px-4 py-4 lg:px-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
+          {/* Mobile menu button */}
           <Button
             variant="ghost"
             size="icon"
@@ -41,13 +45,32 @@ export function TopNav({ onMenuClick }: TopNavProps) {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <h1 className="text-xl font-bold text-green-600">GreenLedger</h1>
-          <div className="relative ml-4 hidden lg:block">
+          
+          {/* Desktop sidebar collapse button */}
+          {/* <Button
+            variant="ghost"
+            size="icon"
+            className="hidden lg:flex"
+            onClick={onToggleCollapse}
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {isCollapsed ? (
+              <PanelLeftOpen className="h-5 w-5" />
+            ) : (
+              <PanelLeftClose className="h-5 w-5" />
+            )}
+          </Button> */}
+          
+          <h1 className="text-xl font-bold" style={{ color: getThemeColor() }}>
+            {process.env.NEXT_PUBLIC_APP_NAME || "GreenLedger"}
+          </h1>
+          <div className="relative ml-4 hidden lg:block"> 
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Input
               className="w-96 pl-10"
               placeholder="Search..."
               type="search"
+              style={{ borderColor: getThemeColor() }}
             />
           </div>
         </div>

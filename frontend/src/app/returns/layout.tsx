@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Dashboard',
-  description: 'Overview of your business performance and key metrics',
+  title: 'Returns',
+  description: 'Manage your return transactions and credit notes',
 };
 
-export default function DashboardRootLayout({
+export default function ReturnsLayout({
   children,
 }: {
   children: React.ReactNode;

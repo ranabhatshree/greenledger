@@ -6,6 +6,7 @@ const Expenses = require("../models/Expenses");
 const Users = require("../models/User");
 const Purchases = require("../models/Purchases");
 const Payments = require("../models/Payments");
+const Returns = require("../models/Returns");
 const moment = require("moment"); // Use moment.js or any date utility library
 const mongoose = require("mongoose")
 
@@ -535,6 +536,336 @@ router.get('/recent-transactions', async (req, res) => {
       res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+// Reports API - Comprehensive analytics for reports page
+router.get(
+  "/reports",
+  protect,
+  roleBasedAccess(["staff", "admin", "superadmin"]),
+  async (req, res) => {
+    try {
+      const { from, to } = req.query;
+
+      // Validate required date parameters
+      if (!from || !to) {
+        return res.status(400).json({
+          status: "error",
+          message: "Both 'from' and 'to' dates are required",
+        });
+      }
+
+      // Parse and validate dates
+      let startDate, endDate;
+      try {
+        startDate = new Date(from);
+        endDate = new Date(to);
+        
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          return res.status(400).json({
+            status: "error",
+            message: "Invalid date format. Please use YYYY-MM-DD format.",
+          });
+        }
+
+        if (startDate > endDate) {
+          return res.status(400).json({
+            status: "error",
+            message: "Start date cannot be later than end date.",
+          });
+        }
+      } catch (dateError) {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid date parameters provided.",
+          details: dateError.message,
+        });
+      }
+
+      // Calculate if period is more than 1 month
+      const diffInMonths = moment(endDate).diff(moment(startDate), 'months', true);
+      const isMoreThanOneMonth = diffInMonths > 1;
+
+      // Parallel execution of all aggregation queries for better performance
+      const [
+        salesResult,
+        expensesResult,
+        partiesCount,
+        purchasesResult,
+        paymentsReceivedResult,
+        paymentsSentResult,
+        returnsResult
+      ] = await Promise.all([
+        // Sales aggregation (Gross Revenue)
+        Sales.aggregate([
+          {
+            $match: {
+              invoiceDate: { $gte: startDate, $lte: endDate },
+              status: { $ne: "cancelled" },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: "$grandTotal" },
+              count: { $sum: 1 },
+            },
+          },
+        ]),
+
+        // Expenses aggregation
+        Expenses.aggregate([
+          {
+            $match: {
+              invoiceDate: { $gte: startDate, $lte: endDate },
+              status: { $ne: "void" },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: "$amount" },
+              count: { $sum: 1 },
+            },
+          },
+        ]),
+
+        // Parties count (Vendors & Suppliers)
+        Users.countDocuments({
+          role: { $in: ["vendor", "supplier"] },
+        }),
+
+        // Purchases aggregation
+        Purchases.aggregate([
+          {
+            $match: {
+              invoiceDate: { $gte: startDate, $lte: endDate },
+              status: { $ne: "cancelled" },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: "$amount" },
+              count: { $sum: 1 },
+            },
+          },
+        ]),
+
+        // Payments Received aggregation
+        Payments.aggregate([
+          {
+            $match: {
+              invoiceDate: { $gte: startDate, $lte: endDate },
+              receivedOrPaid: true,
+              status: { $ne: "cancelled" },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: "$amount" },
+              count: { $sum: 1 },
+            },
+          },
+        ]),
+
+        // Payments Sent aggregation
+        Payments.aggregate([
+          {
+            $match: {
+              invoiceDate: { $gte: startDate, $lte: endDate },
+              receivedOrPaid: false,
+              status: { $ne: "cancelled" },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: "$amount" },
+              count: { $sum: 1 },
+            },
+          },
+        ]),
+
+        // Returns aggregation
+        Returns.aggregate([
+          {
+            $match: {
+              createdAt: { $gte: startDate, $lte: endDate },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: "$amount" },
+              count: { $sum: 1 },
+            },
+          },
+        ]),
+      ]);
+
+      // Extract totals with fallback to 0
+      const grossRevenue = salesResult.length > 0 ? salesResult[0].total : 0;
+      const expenses = expensesResult.length > 0 ? expensesResult[0].total : 0;
+      const purchases = purchasesResult.length > 0 ? purchasesResult[0].total : 0;
+      const paymentsReceived = paymentsReceivedResult.length > 0 ? paymentsReceivedResult[0].total : 0;
+      const paymentsSent = paymentsSentResult.length > 0 ? paymentsSentResult[0].total : 0;
+      const returns = returnsResult.length > 0 ? returnsResult[0].total : 0;
+      const netRevenue = grossRevenue - returns;
+
+      // Prepare aggregate metrics
+      const metrics = {
+        grossRevenue: Number(grossRevenue.toFixed(2)),
+        expenses: Number(expenses.toFixed(2)),
+        parties: partiesCount,
+        purchases: Number(purchases.toFixed(2)),
+        paymentsReceived: Number(paymentsReceived.toFixed(2)),
+        paymentsSent: Number(paymentsSent.toFixed(2)),
+        returns: Number(returns.toFixed(2)),
+        netRevenue: Number(netRevenue.toFixed(2)),
+        counts: {
+          sales: salesResult.length > 0 ? salesResult[0].count : 0,
+          expenses: expensesResult.length > 0 ? expensesResult[0].count : 0,
+          purchases: purchasesResult.length > 0 ? purchasesResult[0].count : 0,
+          paymentsReceived: paymentsReceivedResult.length > 0 ? paymentsReceivedResult[0].count : 0,
+          paymentsSent: paymentsSentResult.length > 0 ? paymentsSentResult[0].count : 0,
+          returns: returnsResult.length > 0 ? returnsResult[0].count : 0,
+        }
+      };
+
+      let monthlyBreakdown = null;
+
+      // If period is more than 1 month, generate monthly breakdown
+      if (isMoreThanOneMonth) {
+        const monthlyData = [];
+        let currentMonth = moment(startDate).startOf('month');
+        const endMonth = moment(endDate).endOf('month');
+
+        while (currentMonth.isSameOrBefore(endMonth)) {
+          const monthStart = currentMonth.toDate();
+          const monthEnd = moment(currentMonth).endOf('month').toDate();
+          const monthKey = currentMonth.format('YYYY-MM');
+          const monthName = currentMonth.format('MMMM YYYY');
+
+          // Parallel execution for monthly data
+          const [
+            monthlySales,
+            monthlyExpenses,
+            monthlyPurchases,
+            monthlyPaymentsReceived,
+            monthlyPaymentsSent,
+            monthlyReturns
+          ] = await Promise.all([
+            Sales.aggregate([
+              {
+                $match: {
+                  invoiceDate: { $gte: monthStart, $lte: monthEnd },
+                  status: { $ne: "cancelled" },
+                },
+              },
+              { $group: { _id: null, total: { $sum: "$grandTotal" } } },
+            ]),
+            Expenses.aggregate([
+              {
+                $match: {
+                  invoiceDate: { $gte: monthStart, $lte: monthEnd },
+                  status: { $ne: "void" },
+                },
+              },
+              { $group: { _id: null, total: { $sum: "$amount" } } },
+            ]),
+            Purchases.aggregate([
+              {
+                $match: {
+                  invoiceDate: { $gte: monthStart, $lte: monthEnd },
+                  status: { $ne: "cancelled" },
+                },
+              },
+              { $group: { _id: null, total: { $sum: "$amount" } } },
+            ]),
+            Payments.aggregate([
+              {
+                $match: {
+                  invoiceDate: { $gte: monthStart, $lte: monthEnd },
+                  receivedOrPaid: true,
+                  status: { $ne: "cancelled" },
+                },
+              },
+              { $group: { _id: null, total: { $sum: "$amount" } } },
+            ]),
+            Payments.aggregate([
+              {
+                $match: {
+                  invoiceDate: { $gte: monthStart, $lte: monthEnd },
+                  receivedOrPaid: false,
+                  status: { $ne: "cancelled" },
+                },
+              },
+              { $group: { _id: null, total: { $sum: "$amount" } } },
+            ]),
+            Returns.aggregate([
+              {
+                $match: {
+                  createdAt: { $gte: monthStart, $lte: monthEnd },
+                },
+              },
+              { $group: { _id: null, total: { $sum: "$amount" } } },
+            ]),
+          ]);
+
+          const monthGrossRevenue = monthlySales.length > 0 ? monthlySales[0].total : 0;
+          const monthReturns = monthlyReturns.length > 0 ? monthlyReturns[0].total : 0;
+
+          monthlyData.push({
+            month: monthKey,
+            monthName: monthName,
+            grossRevenue: Number(monthGrossRevenue.toFixed(2)),
+            expenses: Number((monthlyExpenses.length > 0 ? monthlyExpenses[0].total : 0).toFixed(2)),
+            purchases: Number((monthlyPurchases.length > 0 ? monthlyPurchases[0].total : 0).toFixed(2)),
+            paymentsReceived: Number((monthlyPaymentsReceived.length > 0 ? monthlyPaymentsReceived[0].total : 0).toFixed(2)),
+            paymentsSent: Number((monthlyPaymentsSent.length > 0 ? monthlyPaymentsSent[0].total : 0).toFixed(2)),
+            returns: Number(monthReturns.toFixed(2)),
+            netRevenue: Number((monthGrossRevenue - monthReturns).toFixed(2)),
+          });
+
+          currentMonth.add(1, 'month');
+        }
+
+        monthlyBreakdown = monthlyData;
+      }
+
+      // Send successful response
+      res.status(200).json({
+        status: "success",
+        message: "Reports data retrieved successfully",
+        data: {
+          metrics,
+          monthlyBreakdown,
+          isMoreThanOneMonth,
+          dateRange: {
+            from: startDate,
+            to: endDate,
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Reports data fetch error:", {
+        timestamp: new Date(),
+        error: error.message,
+        stack: error.stack,
+      });
+
+      res.status(500).json({
+        status: "error",
+        message: "Failed to fetch reports data",
+        error:
+          process.env.NODE_ENV === "development"
+            ? error.message
+            : "Internal server error",
+      });
+    }
+  }
+);
 
 
 module.exports = router;

@@ -29,7 +29,7 @@ interface LedgerEntry {
     crAmount: number;
     amount: string;
     status: string;
-    type: "Sale" | "Expense" | "Purchase" | "Payment" | "Rcpt" | undefined;
+    type: "Sale" | "Expense" | "Purchase" | "Payment" | "Returns" | "Rcpt" | undefined;
     id: string;
     invoiceNumber?: string;
     runningBalance?: number;
@@ -196,7 +196,7 @@ export default function PartyPrintPage() {
                     {ledgerEntries.map((entry, index) => (
                         <TableRow key={index} className="compact-row">
                             <TableCell className="p-1">{formatTableDate(entry.date)}</TableCell>
-                            <TableCell className="p-1">{entry.type}</TableCell>
+                            <TableCell className="p-1">{entry.type === "Returns" ? "Returns" : entry.type}</TableCell>
                             <TableCell className="p-1 text-center">{entry.invoiceNumber}</TableCell>
                             <TableCell className="p-1">{entry.particulars}</TableCell>
                             <TableCell className="p-1 text-right">

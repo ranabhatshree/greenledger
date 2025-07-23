@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getBusinessName } from '@/lib/utils';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,9 +10,11 @@ interface LayoutProps {
 
 export async function generateMetadata({ params }: LayoutProps): Promise<Metadata> {
   const resolvedParams = await params;
+  const businessName = getBusinessName();
+  
   return {
-    title: `Invoice #${resolvedParams.id} - GreenLedger`,
-    description: `View details for invoice #${resolvedParams.id}`,
+    title: `Invoice #${resolvedParams.id} - ${businessName}`,
+    description: `Invoice details for ${businessName}`,
   };
 }
 

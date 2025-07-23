@@ -36,7 +36,7 @@ interface LedgerEntry {
     crAmount: number;
     amount: string;
     status: string;
-    type: "Sale" | "Expense" | "Purchase" | "Payment" | undefined;
+    type: "Sale" | "Expense" | "Purchase" | "Payment" | "Returns" | undefined;
     id: string;
     invoiceNumber?: string;
     runningBalance?: number;
@@ -282,7 +282,10 @@ export default function PartyDetailsPage() {
                             {
                                 header: "Type",
                                 accessorKey: "type",
-                                cell: (transaction: any) => transaction.type || "Sale"
+                                cell: (transaction: any) => {
+                                    const type = transaction.type || "Sale";
+                                    return type === "Returns" ? "Returns" : type;
+                                }
                             },
                             {
                                 header: "Vch. No.",

@@ -11,6 +11,14 @@ export default {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        primary: {
+          DEFAULT: process.env.NEXT_PUBLIC_THEME_COLOR || "#008000",
+          foreground: "#ffffff",
+        },
+        secondary: {
+          DEFAULT: process.env.NEXT_PUBLIC_SECONDARY_COLOR || "#4CAF50",
+          foreground: "#ffffff",
+        },
       },
     },
   },

@@ -7,9 +7,6 @@ const createReturnSchema = Joi.object({
         'number.positive': 'Amount must be a positive number',
         'number.base': 'Amount must be a valid number',
     }),
-    taxableAmount: Joi.boolean().optional().messages({
-        'boolean.base': 'Taxable amount must be a boolean',
-    }),
     invoiceNumber: Joi.string().required().messages({
         'any.required': 'Invoice number is required',
         'string.base': 'Invoice number must be a string',
@@ -28,9 +25,6 @@ const updateReturnSchema = Joi.object({
     amount: Joi.number().positive().optional().messages({
         'number.positive': 'Amount must be a positive number',
         'number.base': 'Amount must be a valid number',
-    }),
-    taxableAmount: Joi.boolean().optional().messages({
-        'boolean.base': 'Taxable amount must be a boolean',
     }),
     invoiceNumber: Joi.string().optional().messages({
         'string.base': 'Invoice number must be a string',

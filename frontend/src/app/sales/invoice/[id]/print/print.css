@@ -1,0 +1,31 @@
+@media print {
+  body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    background-color: white;
+  }
+
+  .print-optimized {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  @page {
+    size: A4;
+    margin: 0;
+  }
+}
+
+.print-optimized {
+  width: 100%;
+  max-width: 210mm; /* A4 width */
+  margin: 0 auto;
+  background-color: white;
+}
+
+/* Hide any UI elements not needed for printing */
+.no-print {
+  display: none !important;
+} 

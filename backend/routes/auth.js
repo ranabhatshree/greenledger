@@ -1,5 +1,5 @@
 const express = require('express');
-const { registerUser, loginUser, addPartyByAdmin,  getUsersByRole, logoutUser, resetPassword, getSingleUser} = require('../controllers/authController');
+const { registerUser, loginUser, addPartyByAdmin,  getUsersByRole, logoutUser, resetPassword, confirmResetPassword, getSingleUser} = require('../controllers/authController');
 const { protect, roleBasedAccess } = require('../middlewares/authMiddleware');
 const router = express.Router();
 
@@ -7,21 +7,16 @@ const router = express.Router();
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 
-// Add Party by Admin Route
+// Add new party by admin/superadmin
 router.post(
     '/add-party',
-    protect, // Ensure the user is authenticated
-    roleBasedAccess(['superadmin']), // Restrict to superadmin role
-    addPartyByAdmin // Controller function
+    protect,
+    roleBasedAccess(['admin', 'superadmin']),
+    addPartyByAdmin
 );
 
-// Get Users by Role
-router.get(
-    '/users-by-role',
-    protect,
-    roleBasedAccess(['admin', 'superadmin']), // Allow admin and superadmin to access
-    getUsersByRole
-);
+// Get users by role
+router.get('/users-by-role', protect, roleBasedAccess(['staff', 'admin', 'superadmin']), getUsersByRole);
 
 // Logout Users
 router.post(
@@ -30,10 +25,16 @@ router.post(
     logoutUser
 );
 
-// 
+// Request Password Reset
 router.post(
     '/reset-password',
     resetPassword
+);
+
+// Confirm Password Reset with Token
+router.post(
+    '/confirm-reset-password',
+    confirmResetPassword
 );
 
 router.get('/user/:userId', protect, roleBasedAccess(['staff', 'admin', 'superadmin']), getSingleUser);

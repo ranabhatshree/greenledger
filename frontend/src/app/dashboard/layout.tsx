@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { DashboardLayoutWrapper } from "@/components/dashboard/dashboard-layout-wrapper";
+import { AppLayout } from "@/components/layout/app-layout";
 
 export const metadata: Metadata = {
   title: 'Dashboard - Your Business Overview',
@@ -11,5 +11,5 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <DashboardLayoutWrapper>{children}</DashboardLayoutWrapper>;
+  return <AppLayout>{children}</AppLayout>;
 } 

@@ -1,13 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { DollarSign, ArrowUpRight, ArrowDown, CheckCircle } from "lucide-react";
+import { DollarSign, ArrowUpRight, ArrowDown, CheckCircle, RotateCcw } from "lucide-react";
 import { DataTable, Column } from "@/components/ui/data-table";
 import { useState, useMemo } from "react";
 
 export interface BaseTransaction {
   id: string | number;
-  type?: "Sale" | "Expense" | "Purchase" | "Payment";
+  type?: "Sale" | "Expense" | "Purchase" | "Payment" | "Returns";
   date: string;
   amount: string;
   status: string;
@@ -53,6 +53,7 @@ const iconMap: Record<string, JSX.Element> = {
   Expense: <ArrowDown className="text-red-500 p-2 bg-red-100 rounded-full h-10 w-10" />,
   Purchase: <ArrowUpRight className="text-orange-500 p-2 bg-orange-100 rounded-full h-10 w-10" />,
   Payment: <CheckCircle className="text-blue-500 p-2 bg-blue-100 rounded-full h-10 w-10" />,
+  Returns: <RotateCcw className="text-purple-500 p-2 bg-purple-100 rounded-full h-10 w-10" />,
 };
 
 const getStatusStyles = (status: string) => {

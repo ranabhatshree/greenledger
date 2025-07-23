@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
-import { ArrowRightIcon, EyeIcon, FileInputIcon, Plus, PencilIcon, HistoryIcon } from "lucide-react";
+import { ArrowRightIcon, EyeIcon, FileInputIcon, Plus, PencilIcon, HistoryIcon, CalendarIcon } from "lucide-react";
 import { Loader } from "@/components/ui/loader";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 import Link from "next/link";
@@ -21,6 +21,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface EditHistoryLog {
   description: string;
@@ -58,6 +61,7 @@ export default function SalesPage() {
   const [editingSale, setEditingSale] = useState<SaleTransaction | null>(null);
   const [editedInvoiceNumber, setEditedInvoiceNumber] = useState("");
   const [editedAmount, setEditedAmount] = useState("");
+  const [editedDate, setEditedDate] = useState<Date | undefined>();
   const [editLoading, setEditLoading] = useState(false);
   const { toast } = useToast();
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
@@ -85,6 +89,7 @@ export default function SalesPage() {
         id: sale._id,
         type: "Sale",
         date: format(new Date(sale.invoiceDate), 'MMM dd, yyyy'),
+        invoiceDate: new Date(sale.invoiceDate), // Keep original date for editing
         amount: sale.grandTotal.toLocaleString(),
         status: "Completed",
         invoiceNumber: sale.invoiceNumber,
@@ -119,6 +124,7 @@ export default function SalesPage() {
     setEditingSale(sale);
     setEditedInvoiceNumber(sale.invoiceNumber || "");
     setEditedAmount(sale.amount.replace(/,/g, ""));
+    setEditedDate(sale.invoiceDate ? new Date(sale.invoiceDate) : undefined);
     setEditDialogOpen(true);
   };
 
@@ -127,10 +133,18 @@ export default function SalesPage() {
     
     try {
       setEditLoading(true);
-      const response = await axiosInstance.put(`/sales/${editingSale.id}`, {
+      
+      const updateData: any = {
         invoiceNumber: editedInvoiceNumber,
         grandTotal: parseFloat(editedAmount)
-      });
+      };
+      
+      // Only include date if it's been changed
+      if (editedDate) {
+        updateData.invoiceDate = format(editedDate, 'yyyy-MM-dd');
+      }
+      
+      const response = await axiosInstance.put(`/sales/${editingSale.id}`, updateData);
       
       if (response.status === 200) {
         const updatedSales = sales.map(sale => {
@@ -138,7 +152,9 @@ export default function SalesPage() {
             return {
               ...sale,
               invoiceNumber: editedInvoiceNumber,
-              amount: parseFloat(editedAmount).toLocaleString()
+              amount: parseFloat(editedAmount).toLocaleString(),
+              date: editedDate ? format(editedDate, 'MMM dd, yyyy') : sale.date,
+              invoiceDate: editedDate || sale.invoiceDate
             };
           }
           return sale;
@@ -299,6 +315,36 @@ export default function SalesPage() {
                 className="col-span-3"
                 disabled={editLoading}
               />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="invoiceDate" className="text-right">
+                Invoice Date
+              </Label>
+              <div className="col-span-3">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !editedDate && "text-muted-foreground"
+                      )}
+                      disabled={editLoading}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {editedDate ? format(editedDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={editedDate}
+                      onSelect={setEditedDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="amount" className="text-right">
