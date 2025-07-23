@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Loader } from "@/components/ui/loader";
 import axiosInstance from "@/lib/api/axiosInstance";
@@ -35,7 +35,7 @@ interface LedgerEntry {
     runningBalance?: number;
 }
 
-export default function PartyPrintPage() {
+function PartyPrintContent() {
     const params = useParams();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -229,5 +229,13 @@ export default function PartyPrintPage() {
                 </TableFooter>
             </Table>
         </div>
+    );
+}
+
+export default function PartyPrintPage() {
+    return (
+        <Suspense fallback={<Loader />}>
+            <PartyPrintContent />
+        </Suspense>
     );
 } 
