@@ -18,10 +18,11 @@ export function AppLayout({ children }: AppLayoutProps) {
   useEffect(() => {
     setMounted(true);
     // Load collapsed state from localStorage
-    const savedCollapsedState = localStorage.getItem('sidebarCollapsed');
-    if (savedCollapsedState) {
-      setSidebarCollapsed(JSON.parse(savedCollapsedState));
-    }
+    // const savedCollapsedState = localStorage.getItem('sidebarCollapsed') || "true";
+    // if (savedCollapsedState) {
+    //   setSidebarCollapsed(JSON.parse(savedCollapsedState));
+    // }
+    setSidebarCollapsed(true);
   }, []);
 
   const toggleSidebarCollapse = () => {
