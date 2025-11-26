@@ -11,7 +11,10 @@ const createProduct = async (req, res) => {
     const value = await createProductSchema.validateAsync(req.body);
 
     // Create the product
-    const product = new Product(value);
+    const product = new Product({
+      ...value,
+      companyId: req.user.companyId, // Set companyId from authenticated user
+    });
     await product.save();
 
     res.status(201).json({ message: "Product created successfully", product });
@@ -25,7 +28,7 @@ const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const product = await Product.findById(id);
+    const product = await Product.findOne({ _id: id, companyId: req.user.companyId });
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
@@ -41,6 +44,7 @@ const getAllProducts = async (req, res) => {
   try {
     const { category, sku } = req.query;
     const query = {
+      companyId: req.user.companyId, // Filter by company
       ...(category ? { category: new RegExp(category, 'i') } : {}),
       ...(sku ? { sku } : {}),
     };
@@ -82,7 +86,7 @@ const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const product = await Product.findById(id);
+    const product = await Product.findOne({ _id: id, companyId: req.user.companyId });
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
@@ -127,13 +131,16 @@ const uploadProductsByFile = async (req, res) => {
                 productURL: row.ProductURL,
               });
 
-              // Check if a product with the same SKU already exists
-              const existingProduct = await Product.findOne({ sku: value.sku });
+              // Check if a product with the same SKU already exists in the same company
+              const existingProduct = await Product.findOne({ 
+                sku: value.sku, 
+                companyId: req.user.companyId 
+              });
 
               if (existingProduct) {
                 // Update the existing product if SKU is found
                 await Product.updateOne(
-                  { sku: value.sku }, // Find by SKU
+                  { sku: value.sku, companyId: req.user.companyId }, // Find by SKU and company
                   {
                     $set: {
                       name: value.name,
@@ -148,7 +155,10 @@ const uploadProductsByFile = async (req, res) => {
                 updatedProducts.push(value); // Track updated products
               } else {
                 // Create a new product if SKU doesn't exist
-                const newProduct = new Product(value);
+                const newProduct = new Product({
+                  ...value,
+                  companyId: req.user.companyId, // Set companyId from authenticated user
+                });
                 await newProduct.save();
                 addedProducts.push(newProduct); // Track added products
               }

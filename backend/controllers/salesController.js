@@ -1,5 +1,6 @@
 const Sales = require("../models/Sales");
 const User = require("../models/User");
+const Party = require("../models/Party");
 const {
   createSaleSchema,
   updateSaleSchema,
@@ -24,11 +25,23 @@ const createSale = async (req, res, next) => {
       discountPercentage,
     } = value;
 
+    // Validate that billingParty belongs to the same company
+    const party = await Party.findOne({ 
+      _id: billingParty, 
+      companyId: req.user.companyId 
+    });
+    if (!party) {
+      return res.status(404).json({ message: 'Billing party not found or does not belong to your company' });
+    }
+
     // Process each item to fetch product name and calculate values
     const updatedItems = await Promise.all(
       (items || []).map(async (item) => {
-        // Fetch the product from the database
-        const product = await Product.findById(item.productId);
+        // Fetch the product from the database (must belong to same company)
+        const product = await Product.findOne({ 
+          _id: item.productId, 
+          companyId: req.user.companyId 
+        });
         if (!product) {
           throw new Error(`Product with ID ${item.productId} not found.`);
         }
@@ -76,6 +89,7 @@ const createSale = async (req, res, next) => {
       taxableAmount,
       vatAmount,
       grandTotal,
+      companyId: req.user.companyId, // Set companyId from authenticated user
       createdBy: req.user.id,
     });
 
@@ -94,8 +108,8 @@ const updateSale = async (req, res, next) => {
     // Use validateAsync() to handle asynchronous validation
     const value = await updateSaleSchema.validateAsync(req.body);
 
-    // Check if the sale exists
-    const sale = await Sales.findById(id);
+    // Check if the sale exists and belongs to the same company
+    const sale = await Sales.findOne({ _id: id, companyId: req.user.companyId });
     if (!sale) {
       return res.status(404).json({ message: "Sale not found" });
     }
@@ -111,6 +125,17 @@ const updateSale = async (req, res, next) => {
       discountPercentage,
       grandTotal: providedGrandTotal, // Extract grandTotal if provided
     } = value;
+
+    // Validate billingParty if it's being updated
+    if (billingParty && billingParty.toString() !== sale.billingParty.toString()) {
+      const party = await Party.findOne({ 
+        _id: billingParty, 
+        companyId: req.user.companyId 
+      });
+      if (!party) {
+        return res.status(404).json({ message: 'Billing party not found or does not belong to your company' });
+      }
+    }
 
     // Save original values for logging changes
     const originalSale = {
@@ -147,8 +172,11 @@ const updateSale = async (req, res, next) => {
     if (isItemsUpdate) {
       updatedItems = await Promise.all(
         items.map(async (item) => {
-          // Fetch the product from the database
-          const product = await Product.findById(item.productId);
+          // Fetch the product from the database (must belong to same company)
+          const product = await Product.findOne({ 
+            _id: item.productId, 
+            companyId: req.user.companyId 
+          });
           if (!product) {
             throw new Error(`Product with ID ${item.productId} not found.`);
           }
@@ -287,12 +315,12 @@ const generateEditHistoryLog = async (user, originalSale, updatedSale) => {
       let updatedName = updatedSale.billingParty;
 
       if (mongoose.Types.ObjectId.isValid(originalSale.billingParty)) {
-        const originalParty = await User.findById(originalSale.billingParty, "name");
+        const originalParty = await Party.findById(originalSale.billingParty, "name");
         if (originalParty) originalName = originalParty.name;
       }
 
       if (mongoose.Types.ObjectId.isValid(updatedSale.billingParty)) {
-        const updatedParty = await User.findById(updatedSale.billingParty, "name");
+        const updatedParty = await Party.findById(updatedSale.billingParty, "name");
         if (updatedParty) updatedName = updatedParty.name;
       }
 
@@ -367,32 +395,29 @@ const viewSales = async (req, res, next) => {
     }
 
     const sales = await Sales.find({
+      companyId: req.user.companyId, // Filter by company
       invoiceDate: { $gte: new Date(from), $lte: new Date(to) },
     })
       .populate("createdBy", "name") // Populate createdBy with the name field
+      .populate("billingParty", "name") // Populate billingParty with Party name
       .sort({ invoiceDate: 1, invoiceNumber: 1 });
 
-    // Replace billingParty IDs with their names where applicable
-    const salesWithBillingPartyNames = await Promise.all(
-      sales.map(async (sale) => {
-        const saleObj = sale.toObject();
-        
-        // Sort editHistoryLogs in descending order (newest first)
-        if (saleObj.editHistoryLogs && saleObj.editHistoryLogs.length > 0) {
-          saleObj.editHistoryLogs.sort((a, b) => new Date(b.editedAt) - new Date(a.editedAt));
-        }
-        
-        if (mongoose.Types.ObjectId.isValid(sale.billingParty)) {
-          // If billingParty is an object ID, fetch the name
-          const billingPartyDoc = await User.findById(sale.billingParty, "name");
-          return {
-            ...saleObj,
-            billingParty: billingPartyDoc ? billingPartyDoc.name : sale.billingParty,
-          };
-        }
-        return saleObj; // If it's already a string, return as is
-      })
-    );
+    // Process sales and handle billingParty
+    const salesWithBillingPartyNames = sales.map((sale) => {
+      const saleObj = sale.toObject();
+      
+      // Sort editHistoryLogs in descending order (newest first)
+      if (saleObj.editHistoryLogs && saleObj.editHistoryLogs.length > 0) {
+        saleObj.editHistoryLogs.sort((a, b) => new Date(b.editedAt) - new Date(a.editedAt));
+      }
+      
+      // billingParty is already populated, but handle edge cases
+      if (saleObj.billingParty && typeof saleObj.billingParty === 'object') {
+        saleObj.billingParty = saleObj.billingParty.name || saleObj.billingParty;
+      }
+      
+      return saleObj;
+    });
 
     res.status(200).json({ sales: salesWithBillingPartyNames });
   } catch (error) {
@@ -406,8 +431,12 @@ const getSaleById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const sale = await Sales.findById(id)
-      .populate("createdBy", "name");
+    const sale = await Sales.findOne({ 
+      _id: id, 
+      companyId: req.user.companyId 
+    })
+      .populate("createdBy", "name")
+      .populate("billingParty", "name phone email");
 
     if (!sale) {
       return res.status(404).json({ message: "Sale not found" });
@@ -421,18 +450,16 @@ const getSaleById = async (req, res, next) => {
       saleObj.editHistoryLogs.sort((a, b) => new Date(b.editedAt) - new Date(a.editedAt));
     }
 
-    // Check and handle billingParty
-    let billingPartyName = saleObj.billingParty;
-    if (mongoose.Types.ObjectId.isValid(saleObj.billingParty)) {
-      // If billingParty is an object ID, fetch the name
-      const billingPartyDoc = await User.findById(saleObj.billingParty, "name");
-      billingPartyName = billingPartyDoc ? billingPartyDoc.name : saleObj.billingParty;
+    // Populate billingParty if it's an ObjectId
+    if (sale.billingParty && typeof sale.billingParty === 'object') {
+      saleObj.billingParty = sale.billingParty.name || saleObj.billingParty;
+    } else if (mongoose.Types.ObjectId.isValid(saleObj.billingParty)) {
+      // Fallback: if not populated, fetch Party name
+      const billingPartyDoc = await Party.findById(saleObj.billingParty, "name");
+      saleObj.billingParty = billingPartyDoc ? billingPartyDoc.name : saleObj.billingParty;
     }
 
-    const saleWithBillingPartyName = {
-      ...saleObj,
-      billingParty: billingPartyName,
-    };
+    const saleWithBillingPartyName = saleObj;
 
     res.status(200).json({ sale: saleWithBillingPartyName });
   } catch (error) {
@@ -446,7 +473,7 @@ const deleteSale = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const sale = await Sales.findById(id);
+    const sale = await Sales.findOne({ _id: id, companyId: req.user.companyId });
     if (!sale) {
       return res.status(404).json({ message: "Sale not found" });
     }

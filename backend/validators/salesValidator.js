@@ -31,11 +31,12 @@ const createSaleSchema = Joi.object({
         'any.required': 'Invoice date is required',
         'date.base': 'Invoice date must be a valid date',
     }),
-    billingParty: Joi.alternatives()
-        .try(Joi.string(), Joi.object())
+    billingParty: Joi.string()
+        .pattern(/^[0-9a-fA-F]{24}$/)
         .required()
         .messages({
-            'any.required': 'Billing party is required',
+            'any.required': 'Billing party (Party ID) is required',
+            'string.pattern.base': 'Billing party must be a valid Party ObjectId',
         }),
     items: Joi.array()
         .items(
@@ -103,11 +104,11 @@ const updateSaleSchema = Joi.object({
     invoiceDate: Joi.date().optional().messages({
         'date.base': 'Invoice date must be a valid date',
     }),
-    billingParty: Joi.alternatives()
-        .try(Joi.string(), Joi.object())
+    billingParty: Joi.string()
+        .pattern(/^[0-9a-fA-F]{24}$/)
         .optional()
         .messages({
-            'any.required': 'Billing party is required',
+            'string.pattern.base': 'Billing party must be a valid Party ObjectId',
         }),
     items: Joi.array()
         .items(

@@ -1,0 +1,21 @@
+module.exports = [
+    { "name": "manage_users", "description": "Create, edit, and delete users", "category": "Users" },
+    { "name": "view_users", "description": "View user list and details", "category": "Users" },
+    { "name": "manage_roles", "description": "Create and edit roles", "category": "Users" },
+    { "name": "view_accounts", "description": "View account details", "category": "Accounts" },
+    { "name": "edit_accounts", "description": "Edit account details", "category": "Accounts" },
+    { "name": "create_journal", "description": "Create journal entries", "category": "Transactions" },
+    { "name": "view_journal", "description": "View journal entries", "category": "Transactions" },
+    { "name": "view_reports", "description": "View financial reports", "category": "Reports" },
+    { "name": "view_dashboard_stats", "description": "View dashboard statistics", "category": "Reports" },
+    { "name": "view_sales_stats", "description": "View sales statistics", "category": "Reports" },
+    { "name": "view_vendor_stats", "description": "View vendor statistics", "category": "Reports" },
+    { "name": "manage_company_settings", "description": "Manage company settings", "category": "Settings" },
+    { "name": "manage_parties", "description": "Create, edit, and delete parties", "category": "Parties" },
+    { "name": "view_parties", "description": "View party list and details", "category": "Parties" },
+    { "name": "create_bulk_sales", "description": "Create bulk sales entries", "category": "Sales" },
+    { "name": "view_bulk_sales", "description": "View bulk sales list and details", "category": "Sales" },
+    { "name": "update_bulk_sales", "description": "Update bulk sales entries", "category": "Sales" },
+    { "name": "delete_bulk_sales", "description": "Delete bulk sales entries", "category": "Sales" },
+    { "name": "upload_bulk_sales", "description": "Upload and process bulk sales CSV files", "category": "Sales" }
+];

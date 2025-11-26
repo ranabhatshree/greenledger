@@ -8,6 +8,7 @@ import axiosInstance from "@/lib/api/axiosInstance";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { getBusinessName, getBusinessLogo, getThemeColor, formatCurrency } from "@/lib/utils";
+import { getCompanySettings, type Company } from "@/lib/api/companySettings";
 
 interface SaleItem {
   _id: string;
@@ -50,10 +51,18 @@ export default function InvoicePrintPage() {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
   const [sale, setSale] = useState<SaleDetails | null>(null);
+  const [company, setCompany] = useState<Company | null>(null);
+  const [isLoadingCompany, setIsLoadingCompany] = useState(true);
   const { toast } = useToast();
-  const businessName = getBusinessName();
-  const businessLogo = getBusinessLogo();
   const themeColor = getThemeColor();
+  
+  // Get company data with fallback
+  const businessName = company?.companyName || "GreenLedger";
+  const businessLogo = company?.logoUrl 
+    ? (company.logoUrl.startsWith('http') 
+        ? company.logoUrl 
+        : `${process.env.NEXT_PUBLIC_BASE_URL || ''}${company.logoUrl}`)
+    : null;
 
   const fetchSaleDetails = async () => {
     try {
@@ -85,16 +94,34 @@ export default function InvoicePrintPage() {
     return new Date(invoiceDate.getTime() + paymentTermsDays * 24 * 60 * 60 * 1000);
   };
 
+  const fetchCompanyData = async () => {
+    try {
+      setIsLoadingCompany(true);
+      const response = await getCompanySettings();
+      setCompany(response.company);
+    } catch (error) {
+      console.error('Failed to fetch company settings:', error);
+      // Fallback to "GreenLedger" if company data is not available
+      setCompany(null);
+    } finally {
+      setIsLoadingCompany(false);
+    }
+  };
+
   useEffect(() => {
     fetchSaleDetails();
-    // Auto-print when component loads
-    const timer = setTimeout(() => {
-      if (!loading && sale) {
-        window.print();
-      }
-    }, 1000);
-    return () => clearTimeout(timer);
+    fetchCompanyData();
   }, [id]);
+
+  useEffect(() => {
+    // Auto-print when component loads and data is ready
+    if (!loading && sale && !isLoadingCompany) {
+      const timer = setTimeout(() => {
+        window.print();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, sale, isLoadingCompany]);
 
   if (loading) return <Loader />;
   if (!sale) return <div>Sale not found</div>;
@@ -122,7 +149,10 @@ export default function InvoicePrintPage() {
               <div className="text-2xl font-bold mb-4">{businessName}</div>
             )}
             <div className="text-sm opacity-90">
-              <p>{businessName}</p>
+              <p className="font-semibold">{businessName}</p>
+              {company?.address && (
+                <p className="mt-1">{company.address}</p>
+              )}
             </div>
           </div>
           <div className="text-right">

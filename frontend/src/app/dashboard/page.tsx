@@ -31,7 +31,7 @@ export default function DashboardPage() {
   });
 
   const { data, isLoading, error } = useDashboardStats(dateRange);
-  const { chartData, metrics: salesMetrics } = useSalesChart(dateRange);
+  const { chartData, metrics: salesMetrics, error: salesError } = useSalesChart(dateRange);
   const { vendors } = useVendorsStats(dateRange);
   const [transactions, setTransactions] = useState<BaseTransaction[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
@@ -127,7 +127,7 @@ export default function DashboardPage() {
           <SalesChart 
             data={chartData} 
             isLoading={isLoading} 
-            error={error} 
+            error={salesError} 
           />
         </div>
         <VendorsList 

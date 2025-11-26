@@ -150,6 +150,10 @@ Before you begin, ensure you have the following installed on your machine:
 ## Usage
 
 - **API Endpoints**: The backend application exposes various API endpoints for managing users, expenses, sales, and more. You can use tools like Postman or curl to interact with the API.
+  - **Auth**: `/api/auth/register`, `/api/auth/login`
+  - **Onboarding**: `/api/onboarding/company`
+  - **User**: `/api/user/profile-picture`, `/api/settings/me`
+  - **Roles & Permissions**: `/api/roles`, `/api/permissions`
 - **Frontend Integration**: The frontend application integrates with the backend APIs to provide a seamless user experience for managing finances.
 
 ## Contributing

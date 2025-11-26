@@ -6,6 +6,7 @@ const PurchasesSchema = new mongoose.Schema({
   invoiceDate: { type: Date, required: true }, // Invoice date
   isVatable: { type: Boolean, default: true }, // Indicates if the amount is taxable
   billPhotos: [{ type: String, default: [] }], // Image URLs
+  companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true }, // Reference to the company (Company model)
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
@@ -13,9 +14,9 @@ const PurchasesSchema = new mongoose.Schema({
   }, // Reference to the creator (User model)
   suppliedBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+    ref: "Party",
     required: true,
-  }, // Reference to the supplier (User model)
+  }, // Reference to the supplier (Party model)
   description: { type: String, required: true }, // required description
   note: { type: String, required: false, default: null }, // note
   createdAt: { type: Date, default: Date.now }, // Creation timestamp

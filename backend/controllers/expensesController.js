@@ -14,8 +14,11 @@ const createExpense = async (req, res) => {
       return res.status(400).json({ message: error.details[0].message });
     }
 
-    // Check if expense category exists
-    const categoryExists = await ExpenseCategory.findById(value.category);
+    // Check if expense category exists and belongs to the same company
+    const categoryExists = await ExpenseCategory.findOne({ 
+      _id: value.category, 
+      companyId: req.user.companyId 
+    });
     if (!categoryExists) {
       return res.status(404).json({ message: "Expense category not found" });
     }
@@ -23,6 +26,7 @@ const createExpense = async (req, res) => {
     // Create and save expense
     const expense = new Expenses({
       ...value,
+      companyId: req.user.companyId, // Set companyId from authenticated user
       createdBy: req.user.id, // Populated by `protect` middleware
     });
 
@@ -42,7 +46,7 @@ const updateExpense = async (req, res) => {
       return res.status(400).json({ message: error.details[0].message });
     }
 
-    const expense = await Expenses.findById(id);
+    const expense = await Expenses.findOne({ _id: id, companyId: req.user.companyId });
     if (!expense) {
       return res.status(404).json({ message: "Expense not found" });
     }
@@ -68,6 +72,7 @@ const viewExpenses = async (req, res) => {
     }
 
     const expenses = await Expenses.find({
+      companyId: req.user.companyId, // Filter by company
       invoiceDate: { $gte: new Date(from), $lte: new Date(to) },
     })
       .populate("category", "name")
@@ -85,7 +90,7 @@ const getExpenseById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const expense = await Expenses.findById(id)
+    const expense = await Expenses.findOne({ _id: id, companyId: req.user.companyId })
       .populate("category", "name")
       .populate("createdBy", "name");
     if (!expense) {
@@ -103,12 +108,12 @@ const deleteExpense = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const expense = await Expenses.findById(id);
+    const expense = await Expenses.findOne({ _id: id, companyId: req.user.companyId });
     if (!expense) {
       return res.status(404).json({ message: "Expense not found" });
     }
 
-    await expense.remove();
+    await expense.deleteOne();
     res.status(200).json({ message: "Expense deleted successfully" });
   } catch (error) {
     next(error); // Forward the error to the error handler middleware

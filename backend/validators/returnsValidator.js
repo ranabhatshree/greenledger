@@ -11,10 +11,14 @@ const createReturnSchema = Joi.object({
         'any.required': 'Invoice number is required',
         'string.base': 'Invoice number must be a string',
     }),
-    returnedBy: Joi.string().required().messages({
-        'any.required': 'Returned by (User ID) is required',
-        'string.base': 'Returned by must be a string',
-    }),
+    returnedBy: Joi.string()
+        .pattern(/^[0-9a-fA-F]{24}$/)
+        .required()
+        .messages({
+            'any.required': 'Returned by (Party ID) is required',
+            'string.base': 'Returned by must be a string',
+            'string.pattern.base': 'Returned by must be a valid Party ObjectId',
+        }),
     description: Joi.string().optional().allow(null, '').messages({
         'string.base': 'Description must be a string',
     }),
@@ -29,9 +33,13 @@ const updateReturnSchema = Joi.object({
     invoiceNumber: Joi.string().optional().messages({
         'string.base': 'Invoice number must be a string',
     }),
-    returnedBy: Joi.string().optional().messages({
-        'string.base': 'Returned by must be a string',
-    }),
+    returnedBy: Joi.string()
+        .pattern(/^[0-9a-fA-F]{24}$/)
+        .optional()
+        .messages({
+            'string.base': 'Returned by must be a string',
+            'string.pattern.base': 'Returned by must be a valid Party ObjectId',
+        }),
     description: Joi.string().optional().allow(null, '').messages({
         'string.base': 'Description must be a string',
     }),

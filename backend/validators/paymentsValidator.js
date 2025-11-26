@@ -25,10 +25,14 @@ const createPaymentSchema = Joi.object({
             'array.base': 'Bill photos must be an array of URLs',
             'array.max': 'Bill photos can contain at most 5 URLs',
         }),
-    paidBy: Joi.string().required().messages({
-        'any.required': 'Paid by (User ID) is required',
-        'string.base': 'Paid by must be a string',
-    }),
+    paidBy: Joi.string()
+        .pattern(/^[0-9a-fA-F]{24}$/)
+        .required()
+        .messages({
+            'any.required': 'Paid by (Party ID) is required',
+            'string.base': 'Paid by must be a string',
+            'string.pattern.base': 'Paid by must be a valid Party ObjectId',
+        }),
     description: Joi.string().optional().allow(null, '').messages({
         'string.base': 'Description must be a string',
     }),
@@ -71,9 +75,13 @@ const updatePaymentSchema = Joi.object({
             'array.base': 'Bill photos must be an array of URLs',
             'array.max': 'Bill photos can contain at most 5 URLs',
         }),
-    paidBy: Joi.string().optional().messages({
-        'string.base': 'Paid by must be a string',
-    }),
+    paidBy: Joi.string()
+        .pattern(/^[0-9a-fA-F]{24}$/)
+        .optional()
+        .messages({
+            'string.base': 'Paid by must be a string',
+            'string.pattern.base': 'Paid by must be a valid Party ObjectId',
+        }),
     description: Joi.string().optional().allow(null, '').messages({
         'string.base': 'Description must be a string',
     }),

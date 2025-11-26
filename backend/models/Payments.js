@@ -8,8 +8,9 @@ const PaymentsSchema = new mongoose.Schema({
     },
     amount: { type: Number, required: true }, // Payment amount
     billPhotos: { type: [String], default: [] }, // Array of bill photos, default empty
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true }, // Reference to the company (Company model)
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Reference to the creator (User model)
-    paidBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Reference to the payer (User model)
+    paidBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Party', required: true }, // Reference to the payer (Party model)
     description: { type: String, default: null }, // Optional description
     invoiceNumber: { type: String, default: null }, // Optional invoice number
     invoiceDate: { type: Date, required: true }, // Required payment received date

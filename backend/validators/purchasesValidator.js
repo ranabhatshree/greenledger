@@ -1,14 +1,5 @@
 const Joi = require("joi");
 
-// Common ObjectId validation for and `suppliedBy`
-const objectIdValidation = Joi.string()
-  .pattern(/^[0-9a-fA-F]{24}$/)
-  .required()
-  .messages({
-    "any.required": "{#label} is required",
-    "string.pattern.base": "{#label} must be a valid ObjectId",
-  });
-
 // Valid image extensions
 const validImageExtensions = /\.(jpg|jpeg|png|gif)$/i;
 
@@ -26,7 +17,13 @@ const createPurchaseSchema = Joi.object({
   isVatable: Joi.boolean().optional().messages({
     "boolean.base": "Is Vatable must be a boolean",
   }),
-  suppliedBy: objectIdValidation.label("Supplied By"),
+  suppliedBy: Joi.string()
+    .pattern(/^[0-9a-fA-F]{24}$/)
+    .required()
+    .messages({
+      "any.required": "Supplied By (Party ID) is required",
+      "string.pattern.base": "Supplied By must be a valid Party ObjectId",
+    }),
   description: Joi.string().required().messages({
     "any.required": "Description is required",
     "string.base": "Description must be a string",
@@ -71,7 +68,7 @@ const updatePurchaseSchema = Joi.object({
     .pattern(/^[0-9a-fA-F]{24}$/)
     .optional()
     .messages({
-      "string.pattern.base": "Supplied By must be a valid ObjectId",
+      "string.pattern.base": "Supplied By must be a valid Party ObjectId",
     }),
   description: Joi.string().optional().messages({
     "string.base": "Description must be a string",

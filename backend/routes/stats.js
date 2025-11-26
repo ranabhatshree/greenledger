@@ -4,11 +4,54 @@ const router = express.Router();
 const Sales = require("../models/Sales");
 const Expenses = require("../models/Expenses");
 const Users = require("../models/User");
+const Party = require("../models/Party");
 const Purchases = require("../models/Purchases");
 const Payments = require("../models/Payments");
 const Returns = require("../models/Returns");
 const moment = require("moment"); // Use moment.js or any date utility library
 const mongoose = require("mongoose")
+
+// Helper function to ensure companyId is properly formatted for MongoDB aggregation queries
+// MongoDB aggregation is strict about type matching, so we need to ensure ObjectId format
+const getCompanyIdFilter = (companyId) => {
+  if (!companyId) {
+    return null;
+  }
+  
+  // If it's already an ObjectId instance, return as-is
+  if (companyId instanceof mongoose.Types.ObjectId) {
+    return companyId;
+  }
+  
+  // If it's a valid ObjectId string, convert it to ObjectId
+  if (typeof companyId === 'string' && mongoose.Types.ObjectId.isValid(companyId)) {
+    return new mongoose.Types.ObjectId(companyId);
+  }
+  
+  // If it's an object with toString method (Mongoose document), get the string and convert
+  if (companyId && typeof companyId.toString === 'function') {
+    const idString = companyId.toString();
+    if (mongoose.Types.ObjectId.isValid(idString)) {
+      return new mongoose.Types.ObjectId(idString);
+    }
+  }
+  
+  // Fallback: return as-is (shouldn't happen with proper Mongoose schemas)
+  return companyId;
+};
+
+// Helper to create a match condition that handles both ObjectId and string companyId formats
+// This is useful when data might have been stored in different formats
+const createCompanyIdMatch = (companyId) => {
+  const companyIdFilter = getCompanyIdFilter(companyId);
+  if (!companyIdFilter) {
+    return {};
+  }
+  
+  // Try ObjectId first (most common case)
+  // MongoDB will automatically match if the stored value is also ObjectId
+  return { companyId: companyIdFilter };
+};
 
 // Dashboard cards
 router.get(
@@ -49,6 +92,23 @@ router.get(
         });
       }
 
+      // Debug: Log companyId to help diagnose issues
+      if (!req.user || !req.user.companyId) {
+        console.warn('Warning: req.user.companyId is missing:', {
+          hasUser: !!req.user,
+          userId: req.user?._id,
+          companyId: req.user?.companyId
+        });
+      }
+
+      const companyIdFilter = getCompanyIdFilter(req.user?.companyId);
+      if (!companyIdFilter) {
+        return res.status(400).json({
+          status: "error",
+          message: "User companyId is required. Please ensure your user account is associated with a company.",
+        });
+      }
+
       // Parallel execution of all aggregation queries for better performance
       const [salesResult, expensesResult, partiesCount, purchasesResult] =
         await Promise.all([
@@ -56,8 +116,8 @@ router.get(
           Sales.aggregate([
             {
               $match: {
+                companyId: companyIdFilter,
                 invoiceDate: { $gte: startDate, $lte: endDate },
-                status: { $ne: "cancelled" }, // Exclude cancelled sales
               },
             },
             {
@@ -73,8 +133,8 @@ router.get(
           Expenses.aggregate([
             {
               $match: {
+                companyId: companyIdFilter,
                 invoiceDate: { $gte: startDate, $lte: endDate },
-                status: { $ne: "void" }, // Exclude void expenses
               },
             },
             {
@@ -86,17 +146,17 @@ router.get(
             },
           ]),
 
-          // Active parties count
-          Users.countDocuments({
-            role: { $in: ["vendor", "supplier"] },
+          // Active parties count (filtered by company)
+          Party.countDocuments({
+            companyId: companyIdFilter, // Filter by company
           }),
 
           // Purchases aggregation
           Purchases.aggregate([
             {
               $match: {
+                companyId: companyIdFilter,
                 invoiceDate: { $gte: startDate, $lte: endDate },
-                status: { $ne: "cancelled" }, // Exclude cancelled purchases
               },
             },
             {
@@ -217,10 +277,25 @@ router.get(
           };
       }
 
+      // Ensure companyId is available
+      if (!req.user || !req.user.companyId) {
+        return res.status(400).json({
+          message: "User companyId is required",
+        });
+      }
+
+      const companyIdFilter = getCompanyIdFilter(req.user.companyId);
+      if (!companyIdFilter) {
+        return res.status(400).json({
+          message: "Invalid companyId format",
+        });
+      }
+
       // Aggregate sales data
       const salesData = await Sales.aggregate([
         {
           $match: {
+            companyId: companyIdFilter, // Filter by company
             invoiceDate: { $gte: startDate, $lte: endDate },
           },
         },
@@ -313,20 +388,37 @@ router.get(
       const startDate = moment(endDate).subtract(1, "month").toDate();
       const previousStartDate = moment(startDate).subtract(1, "month").toDate();
 
-      // Get all vendors/suppliers first
-      const vendors = await Users.find({
-        role: { $in: ["vendor", "supplier"] },
-      }).select("_id name businessName");
+      // Ensure companyId is available
+      if (!req.user || !req.user.companyId) {
+        return res.status(400).json({
+          status: "error",
+          message: "User companyId is required",
+        });
+      }
 
-      // Create a map of vendor IDs to names
-      const vendorMap = new Map(
-        vendors.map((v) => [v._id.toString(), v.businessName || v.name])
+      const companyIdFilter = getCompanyIdFilter(req.user.companyId);
+      if (!companyIdFilter) {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid companyId format",
+        });
+      }
+
+      // Get all parties (vendors/suppliers) first (filtered by company)
+      const parties = await Party.find({
+        companyId: companyIdFilter, // Filter by company
+      }).select("_id name");
+
+      // Create a map of party IDs to names
+      const partyMap = new Map(
+        parties.map((p) => [p._id.toString(), p.name])
       );
 
       // Get current period sales
       const currentPeriodSales = await Sales.aggregate([
         {
           $match: {
+            companyId: companyIdFilter, // Filter by company
             invoiceDate: { $gte: startDate, $lte: endDate },
           },
         },
@@ -356,6 +448,7 @@ router.get(
       const previousPeriodSales = await Sales.aggregate([
         {
           $match: {
+            companyId: companyIdFilter, // Filter by company
             invoiceDate: { $gte: previousStartDate, $lte: startDate },
           },
         },
@@ -397,7 +490,7 @@ router.get(
               : ((vendor.currentSales - previousSales) / previousSales) * 100;
 
           return {
-            vendorName: vendorMap.get(vendorId) || "Unknown Vendor",
+            vendorName: partyMap.get(vendorId) || "Unknown Party",
             sales: Math.round(vendor.currentSales),
             growth: Number(growth.toFixed(1)),
             totalTransactions: vendor.totalTransactions,
@@ -405,7 +498,7 @@ router.get(
             previousPeriodSales: Math.round(previousSales),
           };
         })
-        .filter((vendor) => vendor.vendorName !== "Unknown Vendor") // Remove unknown vendors
+        .filter((vendor) => vendor.vendorName !== "Unknown Party") // Remove unknown parties
         .sort((a, b) => b.sales - a.sales)
         .slice(0, parseInt(limit));
 
@@ -416,7 +509,7 @@ router.get(
         message: "Top vendors retrieved successfully",
         data: vendorsWithGrowth,
         metadata: {
-          totalVendors: vendors.length,
+          totalVendors: parties.length,
           dateRange: {
             from: startDate,
             to: endDate,
@@ -446,10 +539,26 @@ router.get(
   }
 );
 
-router.get('/recent-transactions', async (req, res) => {
+router.get('/recent-transactions', protect, async (req, res) => {
   try {
-      // Fetch latest 3 sales
-      const sales = await Sales.find({})
+      // Ensure companyId is available
+      if (!req.user || !req.user.companyId) {
+        return res.status(400).json({
+          status: "error",
+          message: "User companyId is required",
+        });
+      }
+
+      const companyIdFilter = getCompanyIdFilter(req.user.companyId);
+      if (!companyIdFilter) {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid companyId format",
+        });
+      }
+
+      // Fetch latest 3 sales (filtered by company)
+      const sales = await Sales.find({ companyId: companyIdFilter })
           .sort({ invoiceDate: -1 })
           .limit(3)
           .select('invoiceDate invoiceNumber billingParty grandTotal')
@@ -459,8 +568,11 @@ router.get('/recent-transactions', async (req, res) => {
       const salesData = await Promise.all(sales.map(async (sale) => {
           let customerName;
           if (mongoose.Types.ObjectId.isValid(sale.billingParty)) {
-              const user = await Users.findById(sale.billingParty).select('name').lean();
-              customerName = user ? user.name : 'Unknown Customer';
+              const party = await Party.findOne({ 
+                _id: sale.billingParty, 
+                companyId: companyIdFilter 
+              }).select('name').lean();
+              customerName = party ? party.name : 'Unknown Customer';
           } else {
               customerName = sale.billingParty;
           }
@@ -474,8 +586,8 @@ router.get('/recent-transactions', async (req, res) => {
           };
       }));
 
-      // Fetch latest 3 expenses
-      const expenses = await Expenses.find({})
+      // Fetch latest 3 expenses (filtered by company)
+      const expenses = await Expenses.find({ companyId: req.user.companyId })
           .sort({ invoiceDate: -1 })
           .limit(3)
           .select('invoiceDate invoiceNumber amount category description')
@@ -486,8 +598,8 @@ router.get('/recent-transactions', async (req, res) => {
           type: "Expense"
       }));
 
-      // Fetch latest 3 purchases
-      const purchases = await Purchases.find({})
+      // Fetch latest 3 purchases (filtered by company)
+      const purchases = await Purchases.find({ companyId: companyIdFilter })
           .sort({ invoiceDate: -1 })
           .limit(3)
           .select('invoiceDate invoiceNumber amount category description')
@@ -498,16 +610,11 @@ router.get('/recent-transactions', async (req, res) => {
           type: "Purchase"
       }));
 
-            // Fetch latest 3 purchases
-            const payments = await Payments.find({})
-            .sort({ paymentReceivedDate: -1 })
+            // Fetch latest 3 payments (filtered by company)
+            const payments = await Payments.find({ companyId: companyIdFilter })
+            .sort({ invoiceDate: -1 })
             .limit(3)
-            .select({
-                invoiceNumber: 1,
-                amount: 1,
-                description: 1,
-                invoiceDate: '$paymentReceivedDate' // Alias paymentReceivedDate as invoiceDate
-            })
+            .select('invoiceDate invoiceNumber amount description')
             .lean();        
   
         const paymentsData = payments.map(purchase => ({
@@ -585,6 +692,22 @@ router.get(
       const diffInMonths = moment(endDate).diff(moment(startDate), 'months', true);
       const isMoreThanOneMonth = diffInMonths > 1;
 
+      // Ensure companyId is available
+      if (!req.user || !req.user.companyId) {
+        return res.status(400).json({
+          status: "error",
+          message: "User companyId is required",
+        });
+      }
+
+      const companyIdFilter = getCompanyIdFilter(req.user.companyId);
+      if (!companyIdFilter) {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid companyId format",
+        });
+      }
+
       // Parallel execution of all aggregation queries for better performance
       const [
         salesResult,
@@ -599,8 +722,8 @@ router.get(
         Sales.aggregate([
           {
             $match: {
+              companyId: companyIdFilter, // Filter by company
               invoiceDate: { $gte: startDate, $lte: endDate },
-              status: { $ne: "cancelled" },
             },
           },
           {
@@ -616,8 +739,8 @@ router.get(
         Expenses.aggregate([
           {
             $match: {
+              companyId: companyIdFilter, // Filter by company
               invoiceDate: { $gte: startDate, $lte: endDate },
-              status: { $ne: "void" },
             },
           },
           {
@@ -629,17 +752,17 @@ router.get(
           },
         ]),
 
-        // Parties count (Vendors & Suppliers)
-        Users.countDocuments({
-          role: { $in: ["vendor", "supplier"] },
+        // Parties count (Vendors & Suppliers) - filtered by company
+        Party.countDocuments({
+          companyId: companyIdFilter, // Filter by company
         }),
 
         // Purchases aggregation
         Purchases.aggregate([
           {
             $match: {
+              companyId: companyIdFilter, // Filter by company
               invoiceDate: { $gte: startDate, $lte: endDate },
-              status: { $ne: "cancelled" },
             },
           },
           {
@@ -655,9 +778,9 @@ router.get(
         Payments.aggregate([
           {
             $match: {
+              companyId: companyIdFilter, // Filter by company
               invoiceDate: { $gte: startDate, $lte: endDate },
               receivedOrPaid: true,
-              status: { $ne: "cancelled" },
             },
           },
           {
@@ -673,9 +796,9 @@ router.get(
         Payments.aggregate([
           {
             $match: {
+              companyId: companyIdFilter, // Filter by company
               invoiceDate: { $gte: startDate, $lte: endDate },
               receivedOrPaid: false,
-              status: { $ne: "cancelled" },
             },
           },
           {
@@ -691,6 +814,7 @@ router.get(
         Returns.aggregate([
           {
             $match: {
+              companyId: companyIdFilter, // Filter by company
               createdAt: { $gte: startDate, $lte: endDate },
             },
           },
@@ -759,8 +883,8 @@ router.get(
             Sales.aggregate([
               {
                 $match: {
+                  companyId: companyIdFilter, // Filter by company
                   invoiceDate: { $gte: monthStart, $lte: monthEnd },
-                  status: { $ne: "cancelled" },
                 },
               },
               { $group: { _id: null, total: { $sum: "$grandTotal" } } },
@@ -768,8 +892,8 @@ router.get(
             Expenses.aggregate([
               {
                 $match: {
+                  companyId: companyIdFilter, // Filter by company
                   invoiceDate: { $gte: monthStart, $lte: monthEnd },
-                  status: { $ne: "void" },
                 },
               },
               { $group: { _id: null, total: { $sum: "$amount" } } },
@@ -777,8 +901,8 @@ router.get(
             Purchases.aggregate([
               {
                 $match: {
+                  companyId: companyIdFilter, // Filter by company
                   invoiceDate: { $gte: monthStart, $lte: monthEnd },
-                  status: { $ne: "cancelled" },
                 },
               },
               { $group: { _id: null, total: { $sum: "$amount" } } },
@@ -786,9 +910,9 @@ router.get(
             Payments.aggregate([
               {
                 $match: {
+                  companyId: companyIdFilter, // Filter by company
                   invoiceDate: { $gte: monthStart, $lte: monthEnd },
                   receivedOrPaid: true,
-                  status: { $ne: "cancelled" },
                 },
               },
               { $group: { _id: null, total: { $sum: "$amount" } } },
@@ -796,9 +920,9 @@ router.get(
             Payments.aggregate([
               {
                 $match: {
+                  companyId: companyIdFilter, // Filter by company
                   invoiceDate: { $gte: monthStart, $lte: monthEnd },
                   receivedOrPaid: false,
-                  status: { $ne: "cancelled" },
                 },
               },
               { $group: { _id: null, total: { $sum: "$amount" } } },
@@ -806,6 +930,7 @@ router.get(
             Returns.aggregate([
               {
                 $match: {
+                  companyId: companyIdFilter, // Filter by company
                   createdAt: { $gte: monthStart, $lte: monthEnd },
                 },
               },

@@ -2,9 +2,10 @@ const mongoose = require('mongoose');
 
 // Define schema
 const SalesSchema = new mongoose.Schema({
-    billingParty: { type: mongoose.Schema.Types.Mixed, required: true }, // User ID or string
+    billingParty: { type: mongoose.Schema.Types.ObjectId, ref: 'Party', required: true }, // Reference to Party
     invoiceNumber: { type: String, required: true },
     invoiceDate: { type: Date, required: true },
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true }, // Reference to the company (Company model)
 
     // Option 1: Item-based entry (referencing products)
     items: [

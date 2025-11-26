@@ -11,6 +11,7 @@ const createCategory = async (req, res) => {
 
         const category = new ExpenseCategories({
             ...value,
+            companyId: req.user.companyId, // Set companyId from authenticated user
             createdBy: req.user.id, // Populated by `protect` middleware
         });
 
@@ -30,7 +31,7 @@ const updateCategory = async (req, res) => {
             return res.status(400).json({ message: error.details[0].message });
         }
 
-        const category = await ExpenseCategories.findById(id);
+        const category = await ExpenseCategories.findOne({ _id: id, companyId: req.user.companyId });
         if (!category) {
             return res.status(404).json({ message: 'Category not found' });
         }
@@ -47,7 +48,7 @@ const updateCategory = async (req, res) => {
 // View All Categories
 const viewCategories = async (req, res) => {
     try {
-        const categories = await ExpenseCategories.find().populate('createdBy', 'name');
+        const categories = await ExpenseCategories.find({ companyId: req.user.companyId }).populate('createdBy', 'name');
         res.status(200).json({ categories });
     } catch (error) {
         next(error); // Forward the error to the error handler middleware
@@ -59,7 +60,7 @@ const getCategoryById = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const category = await ExpenseCategories.findById(id).populate('createdBy', 'name email role');
+        const category = await ExpenseCategories.findOne({ _id: id, companyId: req.user.companyId }).populate('createdBy', 'name email role');
         if (!category) {
             return res.status(404).json({ message: 'Category not found' });
         }
@@ -75,12 +76,12 @@ const deleteCategory = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const category = await ExpenseCategories.findById(id);
+        const category = await ExpenseCategories.findOne({ _id: id, companyId: req.user.companyId });
         if (!category) {
             return res.status(404).json({ message: 'Category not found' });
         }
 
-        await category.remove();
+        await category.deleteOne();
         res.status(200).json({ message: 'Category deleted successfully' });
     } catch (error) {
         next(error); // Forward the error to the error handler middleware

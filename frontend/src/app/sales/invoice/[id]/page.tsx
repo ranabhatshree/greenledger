@@ -13,6 +13,7 @@ import Image from "next/image";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ImageIcon } from "lucide-react";
 import { getBusinessName, getBusinessLogo, getThemeColor, formatCurrency } from "@/lib/utils";
+import { getCompanySettings, type Company } from "@/lib/api/companySettings";
 import Link from "next/link";
 
 interface SaleItem {
@@ -57,10 +58,18 @@ export default function InvoiceViewPage() {
   const [loading, setLoading] = useState(true);
   const [sale, setSale] = useState<SaleDetails | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [company, setCompany] = useState<Company | null>(null);
+  const [isLoadingCompany, setIsLoadingCompany] = useState(true);
   const { toast } = useToast();
-  const businessName = getBusinessName();
-  const businessLogo = getBusinessLogo();
   const themeColor = getThemeColor();
+  
+  // Get company data with fallback
+  const businessName = company?.companyName || "GreenLedger";
+  const businessLogo = company?.logoUrl 
+    ? (company.logoUrl.startsWith('http') 
+        ? company.logoUrl 
+        : `${process.env.NEXT_PUBLIC_BASE_URL || ''}${company.logoUrl}`)
+    : null;
 
   const fetchSaleDetails = async () => {
     try {
@@ -88,8 +97,23 @@ export default function InvoiceViewPage() {
     window.print();
   };
 
+  const fetchCompanyData = async () => {
+    try {
+      setIsLoadingCompany(true);
+      const response = await getCompanySettings();
+      setCompany(response.company);
+    } catch (error) {
+      console.error('Failed to fetch company settings:', error);
+      // Fallback to "GreenLedger" if company data is not available
+      setCompany(null);
+    } finally {
+      setIsLoadingCompany(false);
+    }
+  };
+
   useEffect(() => {
     fetchSaleDetails();
+    fetchCompanyData();
   }, [id]);
 
   if (loading) return <Loader />;
@@ -150,7 +174,10 @@ export default function InvoiceViewPage() {
                   <div className="text-2xl font-bold mb-4">{businessName}</div>
                 )}
                 <div className="text-sm opacity-90">
-                  <p>{businessName}</p>
+                  <p className="font-semibold">{businessName}</p>
+                  {company?.address && (
+                    <p className="mt-1">{company.address}</p>
+                  )}
                 </div>
               </div>
               <div className="text-right">

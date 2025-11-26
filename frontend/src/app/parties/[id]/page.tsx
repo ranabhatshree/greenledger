@@ -6,23 +6,17 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { Card } from "@/components/ui/card";
 import { Loader } from "@/components/ui/loader";
 import axiosInstance from "@/lib/api/axiosInstance";
+import { getPartyById, type Party } from "@/lib/api/parties";
 import { format } from "date-fns";
 import { TransactionTable } from "@/components/shared/transaction-table";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Printer } from "lucide-react";
+import { Printer, Pencil } from "lucide-react";
+import Link from "next/link";
 
-interface Party {
-    _id: string;
-    name: string;
-    email: string;
-    phone: string;
-    role: string;
-    panNumber: string;
-    address: string;
-}
+// Using Party type from API
 
 interface LedgerEntry {
     _id: string;
@@ -67,8 +61,8 @@ export default function PartyDetailsPage() {
 
     const fetchPartyDetails = async () => {
         try {
-            const response = await axiosInstance.get(`/auth/user/${params.id}`);
-            setParty(response.data.user);
+            const response = await getPartyById(params.id as string);
+            setParty(response.party);
         } catch (error) {
             console.error("Error fetching party details:", error);
         }
@@ -222,6 +216,15 @@ export default function PartyDetailsPage() {
 
                 {/* Regular view party details */}
                 <Card className="p-6 print:hidden">
+                    <div className="flex justify-between items-start mb-4">
+                        <h2 className="text-xl font-semibold">Party Information</h2>
+                        <Link href={`/parties/${params.id}/edit`}>
+                            <Button variant="outline" size="sm" className="flex items-center gap-2">
+                                <Pencil className="h-4 w-4" />
+                                Edit Party
+                            </Button>
+                        </Link>
+                    </div>
                     <div className="grid grid-cols-2 gap-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-500">Name</label>
@@ -233,17 +236,51 @@ export default function PartyDetailsPage() {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-500">Email</label>
-                            <p className="mt-1">{party.email}</p>
+                            <p className="mt-1">{party.email || "N/A"}</p>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-500">Phone</label>
                             <p className="mt-1">{party.phone}</p>
                         </div>
+                        {party.altPhone && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-500">Alternate Phone</label>
+                                <p className="mt-1">{party.altPhone}</p>
+                            </div>
+                        )}
+                        {party.contactPerson && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-500">Contact Person</label>
+                                <p className="mt-1">{party.contactPerson}</p>
+                            </div>
+                        )}
                         <div>
                             <label className="block text-sm font-medium text-gray-500">PAN Number</label>
                             <p className="mt-1">{party.panNumber}</p>
                         </div>
                         <div>
+                            <label className="block text-sm font-medium text-gray-500">Is VATable</label>
+                            <p className="mt-1">{party.isVatable ? "Yes" : "No"}</p>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-500">Party Margin</label>
+                            <p className="mt-1">{party.partyMargin}%</p>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-500">Closing Balance</label>
+                            <p className="mt-1">NPR {party.closingBalance.toLocaleString()}</p>
+                        </div>
+                        {party.website && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-500">Website</label>
+                                <p className="mt-1">
+                                    <a href={party.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                        {party.website}
+                                    </a>
+                                </p>
+                            </div>
+                        )}
+                        <div className="col-span-2">
                             <label className="block text-sm font-medium text-gray-500">Address</label>
                             <p className="mt-1">{party.address}</p>
                         </div>

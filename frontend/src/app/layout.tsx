@@ -1,5 +1,6 @@
 import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/toaster";
+import { Toaster as HotToaster } from "react-hot-toast";
 import "./globals.css";
 import "react-day-picker/dist/style.css";
 import type { Metadata } from 'next';
@@ -20,6 +21,7 @@ export default function RootLayout({
         <Providers>
           {children}
           <Toaster />
+          <HotToaster position="top-right" />
         </Providers>
       </body>
     </html>

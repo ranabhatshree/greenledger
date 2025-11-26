@@ -1,23 +1,13 @@
 "use client";
 
 import { DataTable, Column } from "@/components/ui/data-table";
-import { Building2, EyeIcon, Eye, Pencil, User, FileInputIcon, PencilIcon } from "lucide-react";
+import { Building2, Eye, Pencil, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import Link from "next/link";
+import { type Party } from "@/lib/api/parties";
 
-interface User {
-  _id: string;
-  name: string;
-  email: string;
-  phone: string;
-  role: string;
-  panNumber: string;
-  address: string;
-  partyMargin: number;
-}
-
-interface Party {
+interface PartyDisplay {
   id: string;
   name: string;
   email: string;
@@ -27,28 +17,30 @@ interface Party {
   balance: string;
   status: "Active" | "Inactive";
   partyMargin: number;
+  panNumber: string;
 }
 
 interface PartyTableProps {
-  data: User[];
+  data: Party[];
   filterType: "All Parties" | "Vendors" | "Suppliers";
 }
 
 export function PartyTable({ data, filterType }: PartyTableProps) {
   // Transform API data to match Party interface
-  const transformedData: Party[] = data.map(user => ({
-    id: user._id,
-    name: user.name,
-    email: user.email,
-    type: user.role === "vendor" ? "Vendor" : "Supplier",
-    contact: user.phone,
-    address: user.address,
-    balance: "NPR 0",
+  const transformedData: PartyDisplay[] = data.map(party => ({
+    id: party._id,
+    name: party.name,
+    email: party.email || "",
+    type: party.role === "vendor" ? "Vendor" : "Supplier",
+    contact: party.phone,
+    address: party.address,
+    balance: `NPR ${party.closingBalance.toLocaleString()}`,
     status: "Active",
-    partyMargin: user.partyMargin,
+    partyMargin: party.partyMargin,
+    panNumber: party.panNumber,
   }));
 
-  const columns: Column<Party>[] = [
+  const columns: Column<PartyDisplay>[] = [
     {
       header: "Name",
       cell: (party) => (
@@ -89,10 +81,7 @@ export function PartyTable({ data, filterType }: PartyTableProps) {
     },
     {
       header: "PAN Number",
-      cell: (party) => {
-        const user = data.find(u => u._id === party.id);
-        return user?.panNumber || "-";
-      }
+      accessorKey: "panNumber",
     },
     {
       header: "Party Margin",
@@ -112,11 +101,28 @@ export function PartyTable({ data, filterType }: PartyTableProps) {
           {party.status}
         </span>
       ),
+    },
+    {
+      header: "Actions",
+      cell: (party) => (
+        <div className="flex items-center gap-2">
+          <Link href={`/parties/${party.id}`}>
+            <Button variant="ghost" size="sm" aria-label="View party">
+              <Eye className="h-4 w-4" />
+            </Button>
+          </Link>
+          <Link href={`/parties/${party.id}/edit`}>
+            <Button variant="ghost" size="sm" aria-label="Edit party">
+              <Pencil className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      ),
     }
   ];
 
   return (
-    <DataTable<Party>
+    <DataTable<PartyDisplay>
       data={transformedData}
       columns={columns}
       searchPlaceholder="Search parties..."

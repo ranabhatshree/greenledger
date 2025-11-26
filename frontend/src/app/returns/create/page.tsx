@@ -13,15 +13,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import axiosInstance from "@/lib/api/axiosInstance";
+import { getAllParties, type Party } from "@/lib/api/parties";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 
-interface User {
-  _id: string;
-  name: string;
-  email: string;
-  role: string;
-}
+// Using Party type from API
 
 export default function CreateReturnPage() {
   const router = useRouter();
@@ -29,20 +25,20 @@ export default function CreateReturnPage() {
   const [amount, setAmount] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [returnedBy, setReturnedBy] = useState("");
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<Party[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axiosInstance.get('/auth/users-by-role?role=vendor,supplier');
-        setUsers(response.data.users);
+        const parties = await getAllParties();
+        setUsers(parties);
       } catch (error) {
-        console.error('Error fetching users:', error);
+        console.error('Error fetching parties:', error);
         toast({
           title: "Error",
-          description: "Failed to fetch users",
+          description: "Failed to fetch parties",
           variant: "destructive",
         });
       }

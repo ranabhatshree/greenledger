@@ -1,5 +1,6 @@
 const Returns = require('../models/Returns');
 const User = require('../models/User');
+const Party = require('../models/Party');
 const { createReturnSchema, updateReturnSchema } = require('../validators/returnsValidator');
 
 // Create Return
@@ -12,15 +13,16 @@ const createReturn = async (req, res, next) => {
 
         const { amount, invoiceNumber, returnedBy, description } = value;
 
-        // Validate if the returner exists
-        const returner = await User.findById(returnedBy);
-        if (!returner) {
-            return res.status(404).json({ message: 'Returned by user not found' });
+        // Validate if the party exists
+        const party = await Party.findOne({ _id: returnedBy, companyId: req.user.companyId });
+        if (!party) {
+            return res.status(404).json({ message: 'Party not found' });
         }
 
         const returnEntry = new Returns({
             amount,
             invoiceNumber,
+            companyId: req.user.companyId, // Set companyId from authenticated user
             createdBy: req.user.id, // Populated by `protect` middleware
             returnedBy,
             description,
@@ -42,9 +44,20 @@ const updateReturn = async (req, res, next) => {
             return res.status(400).json({ message: error.details[0].message });
         }
 
-        const returnEntry = await Returns.findById(id);
+        const returnEntry = await Returns.findOne({ _id: id, companyId: req.user.companyId });
         if (!returnEntry) {
             return res.status(404).json({ message: 'Return not found' });
+        }
+
+        // Validate returnedBy if it's being updated
+        if (value.returnedBy && value.returnedBy.toString() !== returnEntry.returnedBy.toString()) {
+            const party = await Party.findOne({ 
+                _id: value.returnedBy, 
+                companyId: req.user.companyId 
+            });
+            if (!party) {
+                return res.status(404).json({ message: 'Party not found or does not belong to your company' });
+            }
         }
 
         Object.assign(returnEntry, value, { updatedAt: Date.now() });
@@ -76,9 +89,12 @@ const viewReturns = async (req, res, next) => {
             }
         }
 
-        const returns = await Returns.find(dateFilter)
+        const returns = await Returns.find({ 
+            ...dateFilter, 
+            companyId: req.user.companyId // Filter by company
+        })
             .populate('createdBy', 'name email role')
-            .populate('returnedBy', 'name email')
+            .populate('returnedBy', 'name phone email')
             .sort({ createdAt: -1 });
 
         res.status(200).json({ returns });
@@ -92,9 +108,12 @@ const getReturnById = async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        const returnEntry = await Returns.findById(id)
+        const returnEntry = await Returns.findOne({ 
+            _id: id, 
+            companyId: req.user.companyId 
+        })
             .populate('createdBy', 'name email role')
-            .populate('returnedBy', 'name email');
+            .populate('returnedBy', 'name phone email');
 
         if (!returnEntry) {
             return res.status(404).json({ message: 'Return not found' });
@@ -111,12 +130,12 @@ const deleteReturn = async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        const returnEntry = await Returns.findById(id);
+        const returnEntry = await Returns.findOne({ _id: id, companyId: req.user.companyId });
         if (!returnEntry) {
             return res.status(404).json({ message: 'Return not found' });
         }
 
-        await returnEntry.remove();
+        await returnEntry.deleteOne();
         res.status(200).json({ message: 'Return deleted successfully' });
     } catch (error) {
         next(error); // Forward the error to the error handler middleware

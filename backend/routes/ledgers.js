@@ -3,7 +3,7 @@ const { protect, roleBasedAccess } = require("../middlewares/authMiddleware");
 const router = express.Router();
 const Sales = require("../models/Sales");
 const Expenses = require("../models/Expenses");
-const Users = require("../models/User");
+const Party = require("../models/Party");
 const Purchases = require("../models/Purchases");
 const Payments = require("../models/Payments");
 const Returns = require("../models/Returns");
@@ -12,20 +12,20 @@ const mongoose = require("mongoose")
 
 // Get Party Ledger
 router.get(
-  "/party/:userId",
+  "/party/:partyId",
   protect,
   roleBasedAccess(["staff", "admin", "superadmin"]),
   async (req, res) => {
     try {
-      const { userId } = req.params;
+      const { partyId } = req.params;
       const { from, to } = req.query;
 
-      // Check if user exists
-      const user = await Users.findById(userId);
-      if (!user) {
+      // Check if party exists and belongs to the same company
+      const party = await Party.findOne({ _id: partyId, companyId: req.user.companyId });
+      if (!party) {
         return res.status(404).json({
           status: "error",
-          message: "User not found"
+          message: "Party not found"
         });
       }
 
@@ -55,77 +55,79 @@ router.get(
         });
       }
 
-      // Validate userId
-      if (!mongoose.Types.ObjectId.isValid(userId)) {
+      // Validate partyId
+      if (!mongoose.Types.ObjectId.isValid(partyId)) {
         return res.status(400).json({
           status: "error",
-          message: "Invalid user ID format",
+          message: "Invalid party ID format",
         });
       }
 
-      // Check if any transactions exist for this user with correct field names
-      const [hasUserSales, hasUserPurchases, hasUserPayments, hasUserReturns] = await Promise.all([
+      // Check if any transactions exist for this party with correct field names (filtered by company)
+      const [hasPartySales, hasPartyPurchases, hasPartyPayments, hasPartyReturns] = await Promise.all([
         Sales.exists({ 
-          billingParty: userId,
+          companyId: req.user.companyId, // Filter by company
+          billingParty: partyId,
           invoiceDate: { $gte: startDate, $lte: endDate },
-          status: { $ne: "cancelled" }
         }),
         Purchases.exists({ 
-          suppliedBy: userId,
+          companyId: req.user.companyId, // Filter by company
+          suppliedBy: partyId,
           invoiceDate: { $gte: startDate, $lte: endDate },
-          status: { $ne: "cancelled" }
         }),
         Payments.exists({ 
-          paidBy: userId,
+          companyId: req.user.companyId, // Filter by company
+          paidBy: partyId,
           invoiceDate: { $gte: startDate, $lte: endDate },
-          status: { $ne: "cancelled" }
         }),
         Returns.exists({ 
-          returnedBy: userId,
+          companyId: req.user.companyId, // Filter by company
+          returnedBy: partyId,
           createdAt: { $gte: startDate, $lte: endDate }
         })
       ]);
 
       // If no transactions exist at all, return early
-      if (!hasUserSales && !hasUserPurchases && !hasUserPayments && !hasUserReturns) {
+      if (!hasPartySales && !hasPartyPurchases && !hasPartyPayments && !hasPartyReturns) {
         return res.status(404).json({
           status: "error",
-          message: "No transactions found for this user in the specified date range"
+          message: "No transactions found for this party in the specified date range"
         });
       }
 
       // Fetch data from collections where transactions exist
       const [sales, purchases, payments, returns] = await Promise.all([
-        hasUserSales ? Sales.find(
+        hasPartySales ? Sales.find(
           {
-            billingParty: userId,
+            companyId: req.user.companyId, // Filter by company
+            billingParty: partyId,
             invoiceDate: { $gte: startDate, $lte: endDate },
-            status: { $ne: "cancelled" },
           },
           "invoiceDate invoiceNumber grandTotal"
         ).lean() : [],
 
-        hasUserPurchases ? Purchases.find(
+        hasPartyPurchases ? Purchases.find(
           {
-            suppliedBy: userId,
+            companyId: req.user.companyId, // Filter by company
+            suppliedBy: partyId,
             invoiceDate: { $gte: startDate, $lte: endDate },
-            status: { $ne: "cancelled" },
           },
           "invoiceDate invoiceNumber amount"
         ).lean() : [],
 
-        hasUserPayments ? Payments.find(
+        hasPartyPayments ? Payments.find(
           {
-            paidBy: userId,
+            companyId: req.user.companyId, // Filter by company
+            paidBy: partyId,
             invoiceDate: { $gte: startDate, $lte: endDate },
-            status: { $ne: "cancelled" },
           },
           "invoiceDate invoiceNumber amount receivedOrPaid"
         ).lean() : [],
 
-        hasUserReturns ? Returns.find(
+        hasPartyReturns ? Returns.find(
           {
-            returnedBy: userId,
+            companyId: req.user.companyId, // Filter by company
+            returnedBy: partyId,
             createdAt: { $gte: startDate, $lte: endDate },
           },
           "createdAt invoiceNumber amount description"

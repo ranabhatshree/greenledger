@@ -21,7 +21,10 @@ const SalesChart = ({ data, isLoading, error }: SalesChartProps) => {
   if (error) {
     return (
       <div className="w-full bg-white rounded-lg shadow-sm p-6">
-        <p className="text-red-500">Failed to load sales data</p>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Sales Overview</h3>
+        <div className="flex items-center justify-center h-[400px]">
+          <p className="text-red-500 text-sm">{error}</p>
+        </div>
       </div>
     );
   }

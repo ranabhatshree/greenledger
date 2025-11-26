@@ -8,35 +8,26 @@ import { Loader } from "@/components/ui/loader";
 import Link from "next/link";
 import { PartyTable } from "@/components/parties/party-table";
 import { cn } from "@/lib/utils";
-import axiosInstance from "@/lib/api/axiosInstance";
+import { getAllParties, type Party } from "@/lib/api/parties";
 
 type PartyType = "All Parties" | "Vendors" | "Suppliers";
 
-interface User {
-  _id: string;
-  name: string;
-  email: string;
-  phone: string;
-  role: string;
-  panNumber: string;
-  address: string;
-  partyMargin: number;
-}
+// Using Party type from API
 
 const tabs: PartyType[] = ["All Parties", "Vendors", "Suppliers"];
 
 export default function PartiesPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<PartyType>("All Parties");
-  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [allUsers, setAllUsers] = useState<Party[]>([]);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get('/auth/users-by-role?role=vendor,supplier');
-      setAllUsers(response.data.users);
+      const parties = await getAllParties();
+      setAllUsers(parties);
     } catch (error) {
-      console.error("Error fetching users:", error);
+      console.error("Error fetching parties:", error);
     } finally {
       setLoading(false);
     }

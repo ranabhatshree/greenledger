@@ -4,18 +4,9 @@ import { useState, useEffect, useMemo, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Loader } from "@/components/ui/loader";
 import axiosInstance from "@/lib/api/axiosInstance";
+import { getPartyById, type Party } from "@/lib/api/parties";
 import { format } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
-
-interface Party {
-    _id: string;
-    name: string;
-    email: string;
-    phone: string;
-    role: string;
-    panNumber: string;
-    address: string;
-}
 
 interface LedgerEntry {
     _id: string;
@@ -69,8 +60,8 @@ function PartyPrintContent() {
 
     const fetchPartyDetails = async () => {
         try {
-            const response = await axiosInstance.get(`/auth/user/${params.id}`);
-            setParty(response.data.user);
+            const response = await getPartyById(params.id as string);
+            setParty(response.party);
         } catch (error) {
             console.error("Error fetching party details:", error);
         }

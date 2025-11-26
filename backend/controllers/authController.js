@@ -1,4 +1,6 @@
 const User = require("../models/User");
+const Role = require("../models/Role");
+const Permission = require("../models/Permission");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Joi = require("joi");
@@ -9,7 +11,7 @@ require("dotenv").config(); // Load environment variables
 
 const BASE_URL = process.env.BASE_URL; // Base URL from environment variables
 
-const registerUser = async (req, res) => {
+const registerUser = async (req, res, next) => {
   try {
     const schema = Joi.object({
       name: Joi.string().required(),
@@ -24,6 +26,7 @@ const registerUser = async (req, res) => {
       password: Joi.string().min(8).required().messages({
         "string.min": "Password length must be at least 8 characters long.",
       }),
+      role: Joi.string().optional(),
     });
 
     const { error } = schema.validate(req.body);
@@ -51,8 +54,54 @@ const registerUser = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = new User({ name, email, phone, password: hashedPassword });
+    // Find or create Admin system role
+    let adminRole = await Role.findOne({ name: 'Admin', isSystemRole: true });
+    
+    if (!adminRole) {
+      // If Admin role doesn't exist, create it with all permissions
+      const allPermissions = await Permission.find({});
+      const permissionNames = allPermissions.map(p => p.name);
+      
+      adminRole = await Role.create({
+        name: 'Admin',
+        description: 'System Administrator with full access',
+        permissions: permissionNames.length > 0 ? permissionNames : [
+          'manage_users',
+          'view_users',
+          'manage_roles',
+          'view_accounts',
+          'edit_accounts',
+          'create_journal',
+          'view_journal',
+          'view_reports',
+          'view_dashboard_stats',
+          'view_sales_stats',
+          'view_vendor_stats',
+          'manage_company_settings'
+        ],
+        isSystemRole: true,
+        companyId: null
+      });
+    }
+
+    // Automatically assign admin role to all new registrations
+    const role = 'admin';
+    const permissionsOverride = adminRole.permissions || [];
+
+    const user = new User({ 
+      name, 
+      email, 
+      phone, 
+      password: hashedPassword, 
+      role,
+      roleId: adminRole._id,
+      permissionsOverride
+    });
     await user.save();
+
+    // Create Onboarding Session
+    const OnboardingSession = require("../models/OnboardingSession");
+    await OnboardingSession.create({ userId: user._id });
 
     const token = jwt.sign(
       { id: user._id }, // Removed role from payload
@@ -62,7 +111,7 @@ const registerUser = async (req, res) => {
 
     res.status(201).json({
       message: "User registered successfully.",
-      authToken: token,
+      token: token,
     });
   } catch (error) {
     next(error); // Forward the error to the error handler middleware
@@ -345,8 +394,8 @@ const confirmResetPassword = async (req, res) => {
 
     const { error } = schema.validate(req.body);
     if (error) {
-      return res.status(400).json({ 
-        message: error.details[0].message.replace(/['"]+/g, "") 
+      return res.status(400).json({
+        message: error.details[0].message.replace(/['"]+/g, "")
       });
     }
 
@@ -357,8 +406,8 @@ const confirmResetPassword = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({ 
-        message: "Invalid or expired password reset token" 
+      return res.status(400).json({
+        message: "Invalid or expired password reset token"
       });
     }
 
@@ -371,8 +420,8 @@ const confirmResetPassword = async (req, res) => {
     user.resetPasswordExpires = undefined;
     await user.save();
 
-    res.status(200).json({ 
-      message: "Password reset successfully. You can now login with your new password." 
+    res.status(200).json({
+      message: "Password reset successfully. You can now login with your new password."
     });
   } catch (error) {
     next(error); // Forward the error to the error handler middleware
@@ -419,6 +468,34 @@ const getSingleUser = async (req, res) => {
   }
 };
 
+const uploadProfilePicture = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const userId = req.user.id;
+    const profilePictureUrl = `/uploads/profile-pictures/${req.file.filename}`;
+
+    await User.findByIdAndUpdate(userId, { profilePicture: profilePictureUrl });
+
+    // Update Onboarding Session if needed
+    const OnboardingSession = require("../models/OnboardingSession");
+    await OnboardingSession.findOneAndUpdate(
+      { userId: userId },
+      { step: 'completed' }, // Assuming this is the last step
+      { upsert: true }
+    );
+
+    res.status(200).json({
+      message: 'Profile picture uploaded successfully',
+      profilePicture: profilePictureUrl
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -428,4 +505,5 @@ module.exports = {
   resetPassword,
   confirmResetPassword,
   getSingleUser,
+  uploadProfilePicture
 };

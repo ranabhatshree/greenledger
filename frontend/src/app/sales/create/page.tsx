@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import axiosInstance from "@/lib/api/axiosInstance";
+import { getAllParties, type Party } from "@/lib/api/parties";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
@@ -61,16 +62,7 @@ interface SaleInvoicePayload {
   billPhotos?: string[];
 }
 
-interface Vendor {
-  _id: string;
-  name: string;
-  email: string;
-  phone: string;
-  role: string;
-  panNumber: string;
-  address: string;
-  partyMargin?: number;
-}
+// Using Party type from API
 
 const roundToTwo = (num: number) => {
   return Math.round((num + Number.EPSILON) * 100) / 100;
@@ -102,7 +94,7 @@ export default function CreateSalePage() {
   const [billingParty, setBillingParty] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [vendors, setVendors] = useState<Party[]>([]);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -139,12 +131,15 @@ export default function CreateSalePage() {
   useEffect(() => {
     const fetchVendors = async () => {
       try {
-        const response = await axiosInstance.get('/auth/users-by-role?role=vendor,supplier');
-        if(response.status === 200  ){
-          setVendors(response.data.users);
-        }
+        const parties = await getAllParties();
+        setVendors(parties);
       } catch (error) {
-        console.error("Error fetching vendors:", error);
+        console.error("Error fetching parties:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch parties",
+          variant: "destructive",
+        });
       }
     };
 

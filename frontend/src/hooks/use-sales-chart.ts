@@ -54,8 +54,11 @@ export const useSalesChart = (dateRange: { from?: Date; to?: Date } = {}) => {
         setSalesData(filteredData);
         setMetrics(metrics);
         setResponseDateRange(responseDateRange);
-      } catch (err) {
-        setError('Failed to fetch sales data');
+      } catch (err: any) {
+        const errorMessage = err.response?.status === 403 
+          ? 'You do not have permission to view sales data'
+          : err.response?.data?.message || 'Failed to fetch sales data';
+        setError(errorMessage);
         console.error('Error fetching sales data:', err);
       } finally {
         setIsLoading(false);

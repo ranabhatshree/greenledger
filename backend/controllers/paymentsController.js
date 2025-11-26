@@ -1,12 +1,13 @@
 const Payments = require("../models/Payments");
 const User = require("../models/User");
+const Party = require("../models/Party");
 const {
   createPaymentSchema,
   updatePaymentSchema,
 } = require("../validators/paymentsValidator");
 
 // Create Payment
-const createPayment = async (req, res) => {
+const createPayment = async (req, res, next) => {
   try {
     const { error, value } = createPaymentSchema.validate(req.body);
     if (error) {
@@ -16,15 +17,19 @@ const createPayment = async (req, res) => {
     // Destructuring the validated value using the spread operator
     const { ...paymentData } = value;
 
-    // Validate if the payer exists
-    const payer = await User.findById(paymentData.paidBy);
-    if (!payer) {
-      return res.status(404).json({ message: "Paid by user not found" });
+    // Validate if the party exists
+    const party = await Party.findOne({ 
+      _id: paymentData.paidBy, 
+      companyId: req.user.companyId 
+    });
+    if (!party) {
+      return res.status(404).json({ message: "Party not found" });
     }
 
     // Create the payment with the spread operator for payment data
     const payment = new Payments({
       ...paymentData, // Spread the rest of the validated fields
+      companyId: req.user.companyId, // Set companyId from authenticated user
       createdBy: req.user.id, // Populated by `protect` middleware
     });
 
@@ -36,7 +41,7 @@ const createPayment = async (req, res) => {
 };
 
 // Update Payment
-const updatePayment = async (req, res) => {
+const updatePayment = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { error, value } = updatePaymentSchema.validate(req.body);
@@ -44,9 +49,20 @@ const updatePayment = async (req, res) => {
       return res.status(400).json({ message: error.details[0].message });
     }
 
-    const payment = await Payments.findById(id);
+    const payment = await Payments.findOne({ _id: id, companyId: req.user.companyId });
     if (!payment) {
       return res.status(404).json({ message: "Payment not found" });
+    }
+
+    // Validate paidBy if it's being updated
+    if (value.paidBy && value.paidBy.toString() !== payment.paidBy.toString()) {
+      const party = await Party.findOne({ 
+        _id: value.paidBy, 
+        companyId: req.user.companyId 
+      });
+      if (!party) {
+        return res.status(404).json({ message: "Party not found or does not belong to your company" });
+      }
     }
 
     Object.assign(payment, value, { updatedAt: Date.now() });
@@ -59,7 +75,7 @@ const updatePayment = async (req, res) => {
 };
 
 // View All Payments
-const viewPayments = async (req, res) => {
+const viewPayments = async (req, res, next) => {
   try {
     const { from, to } = req.query;
 
@@ -70,10 +86,11 @@ const viewPayments = async (req, res) => {
     }
 
     const payments = await Payments.find({
+      companyId: req.user.companyId, // Filter by company
       invoiceDate: { $gte: new Date(from), $lte: new Date(to) },
     })
     .populate("createdBy", "name")
-    .populate("paidBy", "name");
+    .populate("paidBy", "name phone email");
 
     res.status(200).json({ payments });
   } catch (error) {
@@ -82,13 +99,16 @@ const viewPayments = async (req, res) => {
 };
 
 // Get Payment by ID
-const getPaymentById = async (req, res) => {
+const getPaymentById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const payment = await Payments.findById(id)
+    const payment = await Payments.findOne({ 
+      _id: id, 
+      companyId: req.user.companyId 
+    })
       .populate("createdBy", "name")
-      .populate("paidBy", "name");
+      .populate("paidBy", "name phone email");
 
     if (!payment) {
       return res.status(404).json({ message: "Payment not found" });
@@ -101,16 +121,16 @@ const getPaymentById = async (req, res) => {
 };
 
 // Delete Payment
-const deletePayment = async (req, res) => {
+const deletePayment = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const payment = await Payments.findById(id);
+    const payment = await Payments.findOne({ _id: id, companyId: req.user.companyId });
     if (!payment) {
       return res.status(404).json({ message: "Payment not found" });
     }
 
-    await payment.remove();
+    await payment.deleteOne();
     res.status(200).json({ message: "Payment deleted successfully" });
   } catch (error) {
     next(error); // Forward the error to the error handler middleware

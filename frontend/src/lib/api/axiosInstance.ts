@@ -17,6 +17,12 @@ axiosInstance.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Don't set Content-Type for FormData - let browser set it with boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+    
     return config;
   },
   (error) => {
@@ -38,6 +44,10 @@ axiosInstance.interceptors.response.use(
       if (typeof window !== 'undefined') {
         window.location.href = '/login';
       }
+    } else if (error.response?.status === 403) {
+      // 403 Forbidden - user is authenticated but doesn't have permission
+      // Log the error but don't redirect (might be a temporary permission issue)
+      console.error('Access forbidden:', error.response?.data?.message || 'You do not have permission to access this resource');
     }
     return Promise.reject(error);
   }

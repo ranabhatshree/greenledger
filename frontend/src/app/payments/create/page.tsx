@@ -21,22 +21,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import axiosInstance from "@/lib/api/axiosInstance";
+import { getAllParties, type Party } from "@/lib/api/parties";
 import { useToast } from "@/hooks/use-toast";
 
 // Add PaymentType type
 type PaymentType = 'cheque' | 'fonepay' | 'cash' | 'bank_transfer';
 
-interface Supplier {
-  _id: string;
-  name: string;
-  email: string;
-}
+// Using Party type from API
 
 export default function CreatePurchasePage() {
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [suppliers, setSuppliers] = useState<Party[]>([]);
   const [selectedSupplier, setSelectedSupplier] = useState<string>("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,10 +46,15 @@ export default function CreatePurchasePage() {
   useEffect(() => {
     const fetchSuppliers = async () => {
       try {
-        const response = await axiosInstance.get('/auth/users-by-role?role=vendor,supplier');
-        setSuppliers(response.data.users);
+        const parties = await getAllParties();
+        setSuppliers(parties);
       } catch (error) {
-        console.error('Error fetching suppliers:', error);
+        console.error('Error fetching parties:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch parties",
+          variant: "destructive",
+        });
       }
     };
 

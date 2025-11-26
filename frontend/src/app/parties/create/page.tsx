@@ -5,6 +5,8 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -13,17 +15,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
-import axiosInstance from "@/lib/api/axiosInstance";
+import { createParty, type CreatePartyData } from "@/lib/api/parties";
 import { useToast } from "@/hooks/use-toast";
 
-interface PartyFormData {
+interface PartyFormData extends CreatePartyData {
   name: string;
-  email: string;
   phone: string;
+  altPhone?: string;
+  contactPerson?: string;
+  email?: string;
   address: string;
   panNumber: string;
-  role: "vendor" | "supplier";
+  isVatable: boolean;
   partyMargin: number;
+  closingBalance: number;
+  website?: string;
+  role: "vendor" | "supplier";
 }
 
 export default function CreatePartyPage() {
@@ -33,22 +40,23 @@ export default function CreatePartyPage() {
   
   const [formData, setFormData] = useState<PartyFormData>({
     name: "",
-    email: "",
     phone: "",
+    altPhone: "",
+    contactPerson: "",
+    email: "",
     address: "",
     panNumber: "",
+    isVatable: true,
+    partyMargin: 0,
+    closingBalance: 0,
+    website: "",
     role: "vendor",
-    partyMargin: 12,
   });
 
-  const [partyType, setPartyType] = useState<"vendor" | "supplier">("vendor");
-  const [taxType, setTaxType] = useState<"VAT" | "PAN">("VAT");
-
-  const handleInputChange = (field: keyof PartyFormData, value: string) => {
+  const handleInputChange = (field: keyof PartyFormData, value: string | number | boolean) => {
     setFormData(prev => ({
       ...prev,
       [field]: value,
-      role: partyType // Update role when party type changes
     }));
   };
 
@@ -56,35 +64,49 @@ export default function CreatePartyPage() {
     try {
       setIsLoading(true);
 
-      // Basic validation
-      if (!formData.name || !formData.phone) {
+      // Validation
+      if (!formData.name || !formData.phone || !formData.address || !formData.panNumber) {
         toast({
           variant: "destructive",
           title: "Validation Error",
-          description: "Name and phone are required fields",
+          description: "Name, phone, address, and PAN number are required fields",
         });
         return;
       }
 
-      const response = await axiosInstance.post("/auth/add-party", formData);
+      // Prepare data for API (remove empty optional fields)
+      const partyData: CreatePartyData = {
+        name: formData.name,
+        phone: formData.phone,
+        address: formData.address,
+        panNumber: formData.panNumber,
+        role: formData.role,
+        isVatable: formData.isVatable,
+        partyMargin: formData.partyMargin || 0,
+        closingBalance: formData.closingBalance || 0,
+      };
 
-      if (response.status !== 201) {
-        throw new Error("Failed to create party: " + response.data.message);
-      }
+      // Add optional fields only if they have values
+      if (formData.altPhone) partyData.altPhone = formData.altPhone;
+      if (formData.contactPerson) partyData.contactPerson = formData.contactPerson;
+      if (formData.email) partyData.email = formData.email;
+      if (formData.website) partyData.website = formData.website;
+
+      await createParty(partyData);
 
       toast({
         title: "Success",
         description: "Party created successfully",
       });
 
-      router.push("/parties"); // Redirect to parties list
+      router.push("/parties");
       router.refresh();
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || "Something went wrong"; // Extract error message
+      const errorMessage = error.response?.data?.message || error.message || "Something went wrong";
       toast({
         variant: "destructive",
         title: "Error",
-        description: errorMessage, // Show the extracted error message
+        description: errorMessage,
       });
     } finally { 
       setIsLoading(false);
@@ -99,11 +121,10 @@ export default function CreatePartyPage() {
         <Card className="p-6">
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium mb-2">Party Type</label>
+              <Label htmlFor="role" className="block text-sm font-medium mb-2">Party Type *</Label>
               <Select 
-                value={partyType} 
+                value={formData.role} 
                 onValueChange={(value: "vendor" | "supplier") => {
-                  setPartyType(value);
                   handleInputChange("role", value);
                 }}
               >
@@ -118,17 +139,51 @@ export default function CreatePartyPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Party Name</label>
+              <Label htmlFor="name" className="block text-sm font-medium mb-2">Party Name *</Label>
               <Input 
+                id="name"
                 placeholder="Enter party name" 
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
+                required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Email</label>
+              <Label htmlFor="phone" className="block text-sm font-medium mb-2">Phone Number *</Label>
               <Input 
+                id="phone"
+                placeholder="Enter phone number" 
+                value={formData.phone}
+                onChange={(e) => handleInputChange("phone", e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="altPhone" className="block text-sm font-medium mb-2">Alternate Phone</Label>
+              <Input 
+                id="altPhone"
+                placeholder="Enter alternate phone number" 
+                value={formData.altPhone}
+                onChange={(e) => handleInputChange("altPhone", e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="contactPerson" className="block text-sm font-medium mb-2">Contact Person</Label>
+              <Input 
+                id="contactPerson"
+                placeholder="Enter contact person name" 
+                value={formData.contactPerson}
+                onChange={(e) => handleInputChange("contactPerson", e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="email" className="block text-sm font-medium mb-2">Email</Label>
+              <Input 
+                id="email"
                 type="email" 
                 placeholder="Enter email address" 
                 value={formData.email}
@@ -136,59 +191,72 @@ export default function CreatePartyPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">Contact Number</label>
+            <div className="col-span-2">
+              <Label htmlFor="address" className="block text-sm font-medium mb-2">Address *</Label>
               <Input 
-                placeholder="Enter contact number" 
-                value={formData.phone}
-                onChange={(e) => handleInputChange("phone", e.target.value)}
-              />
-            </div>
-
-            <div className="">
-              <label className="block text-sm font-medium mb-2">Address</label>
-              <Input 
-                className="w-full"
+                id="address"
                 placeholder="Enter address" 
                 value={formData.address}
                 onChange={(e) => handleInputChange("address", e.target.value)}
-              />
-            </div>
-            <div className="">
-              <label className="block text-sm font-medium mb-2">Party Margin</label>
-              <Input 
-                type="number"
-                placeholder="Enter party margin" 
-                value={formData.partyMargin}
-                onChange={(e) => handleInputChange("partyMargin", e.target.value)}
+                required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Tax Type</label>
-              <Select 
-                value={taxType} 
-                onValueChange={(value: "VAT" | "PAN") => setTaxType(value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select tax type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="VAT">VAT</SelectItem>
-                  <SelectItem value="PAN">PAN</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                {taxType === "VAT" ? "VAT Number" : "PAN Number"}
-              </label>
+              <Label htmlFor="panNumber" className="block text-sm font-medium mb-2">PAN Number *</Label>
               <Input 
-                placeholder={`Enter ${taxType === "VAT" ? "VAT" : "PAN"} number`}
+                id="panNumber"
+                placeholder="Enter PAN number" 
                 value={formData.panNumber}
                 onChange={(e) => handleInputChange("panNumber", e.target.value)}
+                required
               />
+            </div>
+
+            <div>
+              <Label htmlFor="website" className="block text-sm font-medium mb-2">Website</Label>
+              <Input 
+                id="website"
+                type="url"
+                placeholder="Enter website URL" 
+                value={formData.website}
+                onChange={(e) => handleInputChange("website", e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="partyMargin" className="block text-sm font-medium mb-2">Party Margin (%)</Label>
+              <Input 
+                id="partyMargin"
+                type="number"
+                step="0.01"
+                placeholder="Enter party margin" 
+                value={formData.partyMargin}
+                onChange={(e) => handleInputChange("partyMargin", parseFloat(e.target.value) || 0)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="closingBalance" className="block text-sm font-medium mb-2">Closing Balance (NPR)</Label>
+              <Input 
+                id="closingBalance"
+                type="number"
+                step="0.01"
+                placeholder="Enter closing balance" 
+                value={formData.closingBalance}
+                onChange={(e) => handleInputChange("closingBalance", parseFloat(e.target.value) || 0)}
+              />
+            </div>
+
+            <div className="col-span-2 flex items-center space-x-2">
+              <Checkbox 
+                id="isVatable"
+                checked={formData.isVatable}
+                onCheckedChange={(checked) => handleInputChange("isVatable", checked === true)}
+              />
+              <Label htmlFor="isVatable" className="text-sm font-medium cursor-pointer">
+                Is VATable
+              </Label>
             </div>
           </div>
 

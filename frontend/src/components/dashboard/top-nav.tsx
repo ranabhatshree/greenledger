@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Search, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,10 @@ import { useAppDispatch } from "@/lib/hooks";
 import { logout } from "@/lib/features/auth/authSlice";
 import { useRouter } from "next/navigation";
 import { getThemeColor } from "@/lib/utils";
+import Image from "next/image";
+import { getProfile, type UserProfile } from "@/lib/api/userProfile";
+import { getCompanySettings } from "@/lib/api/companySettings";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface TopNavProps {
   onMenuClick: () => void;
@@ -23,13 +28,74 @@ interface TopNavProps {
 export function TopNav({ onMenuClick, onToggleCollapse, isCollapsed }: TopNavProps) {
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [companyName, setCompanyName] = useState<string>("GreenLedger");
 
-  const handleProfileClick = () => console.log("Profile clicked");
-  const handleSettingsClick = () => console.log("Settings clicked");
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        setIsLoadingUser(true);
+        const response = await getProfile();
+        setUser(response.user);
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error);
+      } finally {
+        setIsLoadingUser(false);
+      }
+    };
+
+    const fetchCompanySettings = async () => {
+      try {
+        const response = await getCompanySettings();
+        if (response.company?.companyName) {
+          setCompanyName(response.company.companyName);
+        }
+      } catch (error) {
+        console.error('Failed to fetch company settings:', error);
+        // Keep default "GreenLedger" on error
+      }
+    };
+
+    fetchUserProfile();
+    fetchCompanySettings();
+  }, []);
+
+  const handleProfileClick = () => {
+    router.push("/profile");
+  };
+  const handleSettingsClick = () => {
+    router.push("/settings");
+  };
   
   const handleLogoutClick = () => {
     dispatch(logout());
     router.push("/login"); // Redirect to login page after logout
+  };
+
+  // Get profile picture URL
+  const getProfilePictureUrl = () => {
+    if (!user?.profilePicture) {
+      return "https://mir-s3-cdn-cf.behance.net/project_modules/hd/d95c1f148207527.62d1246c25004.jpg";
+    }
+    
+    // If it's already a full URL, return as-is
+    if (user.profilePicture.startsWith('http')) {
+      return user.profilePicture;
+    }
+    
+    // Convert relative URL to absolute URL
+    return `${process.env.NEXT_PUBLIC_BASE_URL}${user.profilePicture}`;
+  };
+
+  const getUserInitials = () => {
+    if (!user?.name) return "U";
+    return user.name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
   };
 
   return (
@@ -62,7 +128,7 @@ export function TopNav({ onMenuClick, onToggleCollapse, isCollapsed }: TopNavPro
           </Button> */}
           
           <h1 className="text-xl font-bold" style={{ color: getThemeColor() }}>
-            {process.env.NEXT_PUBLIC_APP_NAME || "GreenLedger"}
+            {companyName}
           </h1>
           <div className="relative ml-4 hidden lg:block"> 
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -77,11 +143,23 @@ export function TopNav({ onMenuClick, onToggleCollapse, isCollapsed }: TopNavPro
         <div className="flex items-center gap-4 px-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <img 
-                src="https://mir-s3-cdn-cf.behance.net/project_modules/hd/d95c1f148207527.62d1246c25004.jpg" 
-                alt="User Avatar"
-                className="h-10 w-10 rounded-full cursor-pointer object-cover"
-              />
+              {isLoadingUser ? (
+                <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse cursor-pointer" />
+              ) : (
+                <Avatar className="h-10 w-10 cursor-pointer">
+                  <AvatarImage 
+                    src={getProfilePictureUrl()} 
+                    alt={user?.name || "User Avatar"}
+                    onError={(e) => {
+                      // Hide image on error, fallback will show
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                  <AvatarFallback className="bg-gray-200 text-gray-600 text-sm">
+                    {getUserInitials()}
+                  </AvatarFallback>
+                </Avatar>
+              )}
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem onClick={handleProfileClick}>
