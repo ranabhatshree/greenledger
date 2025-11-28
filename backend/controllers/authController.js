@@ -118,7 +118,7 @@ const registerUser = async (req, res, next) => {
   }
 };
 
-const loginUser = async (req, res) => {
+const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
@@ -148,7 +148,7 @@ const loginUser = async (req, res) => {
   }
 };
 
-const addPartyByAdmin = async (req, res) => {
+const addPartyByAdmin = async (req, res, next) => {
   try {
     const schema = Joi.object({
       name: Joi.string().required(),
@@ -231,7 +231,7 @@ const addPartyByAdmin = async (req, res) => {
   }
 };
 
-const getUsersByRole = async (req, res) => {
+const getUsersByRole = async (req, res, next) => {
   try {
     const { role } = req.query;
 
@@ -261,7 +261,7 @@ const getUsersByRole = async (req, res) => {
   }
 };
 
-const logoutUser = async (req, res) => {
+const logoutUser = async (req, res, next) => {
   try {
     // Get token from the authorization header
     const token = req.headers.authorization?.split(" ")[1];
@@ -290,7 +290,7 @@ const logoutUser = async (req, res) => {
   }
 };
 
-const resetPassword = async (req, res) => {
+const resetPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
 
@@ -307,7 +307,7 @@ const resetPassword = async (req, res) => {
 
     // Generate reset token and expiration
     const resetToken = crypto.randomBytes(32).toString("hex");
-    const resetTokenExpiry = Date.now() + 3600000; // 1 hour expiration
+    const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour expiration
 
     // Update user with reset token
     user.resetPasswordToken = resetToken;
@@ -315,6 +315,9 @@ const resetPassword = async (req, res) => {
     await user.save();
 
     // Generate reset link using base URL from .env
+    if (!BASE_URL) {
+      return res.status(500).json({ message: "Server configuration error: BASE_URL is not set" });
+    }
     const resetLink = `${BASE_URL}/reset-password?token=${resetToken}`;
 
     // Email content
@@ -376,7 +379,7 @@ const resetPassword = async (req, res) => {
   }
 };
 
-const confirmResetPassword = async (req, res) => {
+const confirmResetPassword = async (req, res, next) => {
   try {
     const { token, password } = req.body;
 
@@ -402,7 +405,7 @@ const confirmResetPassword = async (req, res) => {
     // Find user with the reset token
     const user = await User.findOne({
       resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() } // Check if token has not expired
+      resetPasswordExpires: { $gt: new Date() } // Check if token has not expired
     });
 
     if (!user) {
@@ -428,7 +431,7 @@ const confirmResetPassword = async (req, res) => {
   }
 };
 
-const getSingleUser = async (req, res) => {
+const getSingleUser = async (req, res, next) => {
   try {
     const { userId } = req.params;
 
