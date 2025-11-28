@@ -28,14 +28,13 @@ const createCompany = async (req, res, next) => {
 
         const company = new Company({
             companyName,
+            companyType,
             ownerId: userId,
             registrationNumber,
             address,
             currency,
             fiscalYearStartMonth,
             timezone,
-            // companyType - I missed this in the model. I will add it to the model in a separate step or just ignore for now if not critical. 
-            // Let's assume we can store it if I update the model. I'll update the model after this.
         });
 
         await company.save();

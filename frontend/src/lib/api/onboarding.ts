@@ -7,7 +7,9 @@ const getAuthToken = () => Cookies.get('token');
 
 export const createCompany = async (data: any) => {
     const token = getAuthToken();
-    const response = await axios.post(`${API_URL}/onboarding/company`, data, {
+    // Remove trailing slash from API_URL to avoid double slashes
+    const baseUrl = API_URL.replace(/\/$/, '');
+    const response = await axios.post(`${baseUrl}/onboarding/company`, data, {
         headers: {
             Authorization: `Bearer ${token}`,
         },
@@ -20,7 +22,9 @@ export const uploadProfilePicture = async (file: File) => {
     const formData = new FormData();
     formData.append('profilePicture', file);
 
-    const response = await axios.post(`${API_URL}/user/profile-picture`, formData, {
+    // Remove trailing slash from API_URL to avoid double slashes
+    const baseUrl = API_URL.replace(/\/$/, '');
+    const response = await axios.post(`${baseUrl}/user/profile-picture`, formData, {
         headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data',
