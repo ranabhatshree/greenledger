@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, BarChart, LayoutDashboard, LineChart } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { loginUser, clearError } from "@/lib/features/auth/authSlice";
+import { checkOnboardingComplete } from "@/lib/utils/onboarding";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -35,7 +36,19 @@ export default function LoginPage() {
   useEffect(() => {
     // Redirect if already authenticated
     if (isAuthenticated) {
-      router.push("/dashboard");
+      // Check onboarding status before redirecting
+      checkOnboardingComplete()
+        .then((isComplete) => {
+          if (isComplete) {
+            router.push("/dashboard");
+          } else {
+            router.push("/onboarding");
+          }
+        })
+        .catch(() => {
+          // If check fails, redirect to onboarding
+          router.push("/onboarding");
+        });
     }
   }, [isAuthenticated, router]);
 
@@ -69,7 +82,19 @@ export default function LoginPage() {
         title: "Success",
         description: "Logged in successfully",
       });
-      router.push("/dashboard");
+      
+      // Check if onboarding is complete
+      try {
+        const isOnboardingComplete = await checkOnboardingComplete();
+        if (isOnboardingComplete) {
+          router.push("/dashboard");
+        } else {
+          router.push("/onboarding");
+        }
+      } catch (error) {
+        // If check fails, assume onboarding is not complete
+        router.push("/onboarding");
+      }
     }
   };
 

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { setUser } from '@/lib/features/auth/authSlice';
+import { Loader } from '@/components/ui/loader';
 
 interface CompanyFormProps {
     onComplete: () => void;
@@ -21,13 +22,15 @@ interface CompanyFormData {
     address: string;
     currency: string;
     timezone: string;
+    fiscalYearStartMonth: string;
 }
 
 export default function CompanyForm({ onComplete }: CompanyFormProps) {
     const { register, handleSubmit, formState: { errors }, control } = useForm<CompanyFormData>({
         defaultValues: {
             currency: 'NPR',
-            timezone: 'Asia/Kathmandu'
+            timezone: 'Asia/Kathmandu',
+            fiscalYearStartMonth: 'July'
         }
     });
     const [loading, setLoading] = useState(false);
@@ -48,6 +51,10 @@ export default function CompanyForm({ onComplete }: CompanyFormProps) {
         }
     };
 
+    if (loading) {
+        return <Loader />;
+    }
+
     return (
         <div className="space-y-6">
             <div className="text-center">
@@ -56,6 +63,11 @@ export default function CompanyForm({ onComplete }: CompanyFormProps) {
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                {/* Hidden fields for form submission */}
+                <input type="hidden" {...register('currency')} value="NPR" />
+                <input type="hidden" {...register('timezone')} value="Asia/Kathmandu" />
+                <input type="hidden" {...register('fiscalYearStartMonth')} value="July" />
+
                 <div className="space-y-2">
                     <Label htmlFor="companyName">Company Name</Label>
                     <Input id="companyName" {...register('companyName', { required: 'Company name is required' })} />
@@ -94,47 +106,33 @@ export default function CompanyForm({ onComplete }: CompanyFormProps) {
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="currency">Currency</Label>
-                        <Controller
-                            name="currency"
-                            control={control}
-                            rules={{ required: 'Currency is required' }}
-                            render={({ field }) => (
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select currency" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="NPR">NPR</SelectItem>
-                                        <SelectItem value="USD">USD</SelectItem>
-                                        <SelectItem value="EUR">EUR</SelectItem>
-                                        <SelectItem value="INR">INR</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            )}
+                        <Input 
+                            id="currency" 
+                            value="NPR" 
+                            disabled 
+                            className="bg-gray-100 cursor-not-allowed"
                         />
-                        {errors.currency && <span className="text-red-500 text-sm">{errors.currency.message as string}</span>}
                     </div>
 
                     <div className="space-y-2">
                         <Label htmlFor="timezone">Timezone</Label>
-                        <Controller
-                            name="timezone"
-                            control={control}
-                            rules={{ required: 'Timezone is required' }}
-                            render={({ field }) => (
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select timezone" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Asia/Kathmandu">Asia/Kathmandu</SelectItem>
-                                        <SelectItem value="UTC">UTC</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            )}
+                        <Input 
+                            id="timezone" 
+                            value="Asia/Kathmandu" 
+                            disabled 
+                            className="bg-gray-100 cursor-not-allowed"
                         />
-                        {errors.timezone && <span className="text-red-500 text-sm">{errors.timezone.message as string}</span>}
                     </div>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="fiscalYearStartMonth">Fiscal Year Start Month</Label>
+                    <Input 
+                        id="fiscalYearStartMonth" 
+                        value="July" 
+                        disabled 
+                        className="bg-gray-100 cursor-not-allowed"
+                    />
                 </div>
 
                 <Button type="submit" className="w-full" disabled={loading}>

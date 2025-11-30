@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
+import { Loader } from '@/components/ui/loader';
 
 export default function RegisterForm() {
     const { register, handleSubmit, formState: { errors } } = useForm();
@@ -35,6 +36,10 @@ export default function RegisterForm() {
             }
         }
     };
+
+    if (isLoading) {
+        return <Loader />;
+    }
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

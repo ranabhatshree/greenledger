@@ -13,6 +13,8 @@ import { BaseTransaction } from "@/components/shared/transaction-table";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { useSalesChart } from "@/hooks/use-sales-chart";
 import { useVendorsStats } from "@/hooks/use-vendors-stats";
+import { useRouter } from "next/navigation";
+import { checkOnboardingComplete } from "@/lib/utils/onboarding";
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("en-IN", {
@@ -22,6 +24,7 @@ const formatCurrency = (amount: number) => {
 };
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined;
     to: Date | undefined;
@@ -35,6 +38,26 @@ export default function DashboardPage() {
   const { vendors } = useVendorsStats(dateRange);
   const [transactions, setTransactions] = useState<BaseTransaction[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
+
+  // Check onboarding status on mount
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      try {
+        const isComplete = await checkOnboardingComplete();
+        if (!isComplete) {
+          router.push('/onboarding');
+        }
+      } catch (error) {
+        // If check fails, redirect to onboarding
+        router.push('/onboarding');
+      } finally {
+        setIsCheckingOnboarding(false);
+      }
+    };
+
+    checkOnboarding();
+  }, [router]);
 
   useEffect(() => {
     const getTransactions = async () => {
@@ -60,7 +83,7 @@ export default function DashboardPage() {
     getTransactions();
   }, [dateRange]);
 
-  if (isLoading || transactionsLoading) return <Loader />;
+  if (isCheckingOnboarding || isLoading || transactionsLoading) return <Loader />;
   if (error) return <div className="text-red-500">Error: {error}</div>;
   if (!data) return null;
 

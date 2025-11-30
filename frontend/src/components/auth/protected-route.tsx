@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAppSelector } from '@/lib/hooks';
 import { Loader } from '@/components/ui/loader';
+import { checkOnboardingComplete } from '@/lib/utils/onboarding';
 import Cookies from 'js-cookie';
 
 const PUBLIC_PATHS = ['/', '/login', '/register', '/forgot-password'];
+const ONBOARDING_PATH = '/onboarding';
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -22,17 +24,41 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     if (!isHydrated) return;
 
     const cookieToken = Cookies.get('token');
+    const isAuthenticated = !!(token || cookieToken);
     
-    // If on a public path and authenticated, redirect to dashboard
-    if ((token || cookieToken) && PUBLIC_PATHS.includes(pathname)) {
-      router.push('/dashboard');
+    // If on a public path and authenticated, check onboarding and redirect
+    if (isAuthenticated && PUBLIC_PATHS.includes(pathname)) {
+      checkOnboardingComplete()
+        .then((isComplete) => {
+          if (isComplete) {
+            router.push('/dashboard');
+          } else {
+            router.push(ONBOARDING_PATH);
+          }
+        })
+        .catch(() => {
+          router.push(ONBOARDING_PATH);
+        });
       return;
     }
 
     // If on a protected path and not authenticated, redirect to login
-    if (!token && !cookieToken && !PUBLIC_PATHS.includes(pathname)) {
+    if (!isAuthenticated && !PUBLIC_PATHS.includes(pathname) && pathname !== ONBOARDING_PATH) {
       router.push('/login');
       return;
+    }
+
+    // If authenticated and trying to access dashboard without onboarding, redirect to onboarding
+    if (isAuthenticated && pathname === '/dashboard') {
+      checkOnboardingComplete()
+        .then((isComplete) => {
+          if (!isComplete) {
+            router.push(ONBOARDING_PATH);
+          }
+        })
+        .catch(() => {
+          router.push(ONBOARDING_PATH);
+        });
     }
   }, [token, pathname, router, isHydrated]);
 

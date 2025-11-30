@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { Loader } from '@/components/ui/loader';
 
 export default function ProfileUpload() {
     const [file, setFile] = useState<File | null>(null);
@@ -41,6 +42,10 @@ export default function ProfileUpload() {
     const handleSkip = () => {
         router.push('/dashboard');
     };
+
+    if (loading) {
+        return <Loader />;
+    }
 
     return (
         <div className="space-y-6 text-center">
