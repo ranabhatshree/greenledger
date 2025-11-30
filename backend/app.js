@@ -58,6 +58,7 @@ app.use('/api/helper', helperRoute);
 app.use('/api/stats', statsRoute);
 app.use('/api/ledgers', ledgersRoute);
 app.use('/api/bulk-sales', require('./routes/bulkSalesRoutes'));
+app.use('/api/imports', require('./routes/importRoutes'));
 
 app.use('/uploads', express.static('uploads'));
 app.use(apiLimiter);

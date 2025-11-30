@@ -77,7 +77,14 @@ const registerUser = async (req, res, next) => {
           'view_dashboard_stats',
           'view_sales_stats',
           'view_vendor_stats',
-          'manage_company_settings'
+          'manage_company_settings',
+          'manage_parties',
+          'view_parties',
+          'create_bulk_sales',
+          'view_bulk_sales',
+          'update_bulk_sales',
+          'delete_bulk_sales',
+          'upload_bulk_sales'
         ],
         isSystemRole: true,
         companyId: null

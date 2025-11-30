@@ -8,7 +8,7 @@ const CompanySchema = new mongoose.Schema({
     address: { type: String, required: true },
     currency: { type: String, default: 'NPR' },
     timezone: { type: String, default: 'Asia/Kathmandu' }, // Defaulting to Nepal time as per context
-    fiscalYearStartMonth: { type: String, default: 'April' },
+    fiscalYearStartMonth: { type: String, default: 'July' },
     logoUrl: { type: String, default: null },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }

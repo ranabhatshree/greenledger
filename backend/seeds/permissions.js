@@ -17,5 +17,9 @@ module.exports = [
     { "name": "view_bulk_sales", "description": "View bulk sales list and details", "category": "Sales" },
     { "name": "update_bulk_sales", "description": "Update bulk sales entries", "category": "Sales" },
     { "name": "delete_bulk_sales", "description": "Delete bulk sales entries", "category": "Sales" },
-    { "name": "upload_bulk_sales", "description": "Upload and process bulk sales CSV files", "category": "Sales" }
+    { "name": "upload_bulk_sales", "description": "Upload and process bulk sales CSV files", "category": "Sales" },
+    { "name": "create_imports", "description": "Create import records", "category": "Imports" },
+    { "name": "view_imports", "description": "View import records", "category": "Imports" },
+    { "name": "update_imports", "description": "Update import records", "category": "Imports" },
+    { "name": "delete_imports", "description": "Delete import records", "category": "Imports" }
 ];
