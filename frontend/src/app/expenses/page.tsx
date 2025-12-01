@@ -23,7 +23,7 @@ import {  startOfMonth } from "date-fns";
 interface Expense {
   _id: string;
   amount: number;
-  invoiceNumber: string;
+  invoiceNumber?: string;
   category: {
     _id: string;
     name: string;
@@ -94,7 +94,7 @@ export default function ExpensesPage() {
         }),
         amount: expense.amount.toString(),
         status: "Paid",
-        invoiceNumber: expense.invoiceNumber,
+        invoiceNumber: expense.invoiceNumber || "N/A",
         category: expense.category.name,
         createdBy: expense.createdBy.name,
         billPhotos: expense.billPhotos,

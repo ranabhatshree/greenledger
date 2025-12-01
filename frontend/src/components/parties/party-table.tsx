@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import Link from "next/link";
 import { type Party } from "@/lib/api/parties";
+import { useState, useMemo } from "react";
 
 interface PartyDisplay {
   id: string;
@@ -26,6 +27,8 @@ interface PartyTableProps {
 }
 
 export function PartyTable({ data, filterType }: PartyTableProps) {
+  const [searchValue, setSearchValue] = useState("");
+
   // Transform API data to match Party interface
   const transformedData: PartyDisplay[] = data.map(party => ({
     id: party._id,
@@ -39,6 +42,23 @@ export function PartyTable({ data, filterType }: PartyTableProps) {
     partyMargin: party.partyMargin,
     panNumber: party.panNumber,
   }));
+
+  // Filter data based on search value
+  const filteredData = useMemo(() => {
+    if (!searchValue) return transformedData;
+    
+    const searchLower = searchValue.toLowerCase();
+    return transformedData.filter(party => {
+      return (
+        party.name.toLowerCase().includes(searchLower) ||
+        party.email.toLowerCase().includes(searchLower) ||
+        party.contact?.toLowerCase().includes(searchLower) ||
+        party.address?.toLowerCase().includes(searchLower) ||
+        party.panNumber?.toLowerCase().includes(searchLower) ||
+        party.type.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [transformedData, searchValue]);
 
   const columns: Column<PartyDisplay>[] = [
     {
@@ -123,9 +143,11 @@ export function PartyTable({ data, filterType }: PartyTableProps) {
 
   return (
     <DataTable<PartyDisplay>
-      data={transformedData}
+      data={filteredData}
       columns={columns}
       searchPlaceholder="Search parties..."
+      searchValue={searchValue}
+      onSearchChange={setSearchValue}
     />
   );
 } 
