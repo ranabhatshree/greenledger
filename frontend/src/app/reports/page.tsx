@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { 
   CircleDollarSign, 
   ArrowUpRight, 
@@ -13,7 +13,9 @@ import {
 } from "lucide-react";
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { Loader } from "@/components/ui/loader";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Table,
@@ -34,14 +36,11 @@ const formatCurrency = (amount: number) => {
 };
 
 export default function ReportsPage() {
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
-    from: new Date(new Date().getFullYear(), new Date().getMonth() - 2, 1), // Default to 3 months ago
-    to: new Date(),
-  });
+  const [fromDate, setFromDate] = useState<Date>(new Date(new Date().getFullYear(), new Date().getMonth() - 2, 1)); // Default to 3 months ago
+  const [toDate, setToDate] = useState<Date>(new Date());
 
+  // Memoize dateRange to prevent infinite loops
+  const dateRange = useMemo(() => ({ from: fromDate, to: toDate }), [fromDate, toDate]);
   const { data, isLoading, error } = useReportsData(dateRange);
 
   if (isLoading) return <Loader />;
@@ -56,16 +55,32 @@ export default function ReportsPage() {
             <h1 className="text-2xl font-semibold text-gray-900">Reports & Analytics</h1>
             <p className="text-gray-600 mt-1">Comprehensive shop performance metrics and analytics</p>
           </div>
-          <DateRangePicker
-            from={dateRange.from}
-            to={dateRange.to}
-            onSelect={(range) => {
-              setDateRange({
-                from: range?.from,
-                to: range?.to,
-              });
-            }}
-          />
+          <div className="flex items-center gap-2">
+            <Label htmlFor="fromDate" className="text-sm font-medium whitespace-nowrap">
+              From:
+            </Label>
+            <DatePicker
+              selected={fromDate}
+              onChange={(date) => date && setFromDate(date)}
+              dateFormat="dd/MM/yyyy"
+              placeholderText="From date"
+              className="flex h-9 w-[140px] rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+              maxDate={toDate}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="toDate" className="text-sm font-medium whitespace-nowrap">
+              To:
+            </Label>
+            <DatePicker
+              selected={toDate}
+              onChange={(date) => date && setToDate(date)}
+              dateFormat="dd/MM/yyyy"
+              placeholderText="To date"
+              className="flex h-9 w-[140px] rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+              minDate={fromDate}
+            />
+          </div>
         </div>
       </div>
 

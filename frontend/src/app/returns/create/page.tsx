@@ -12,6 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { CalendarIcon } from "lucide-react";
+import { ImageUploader, type UploadedImage } from "@/components/shared/image-uploader";
 import axiosInstance from "@/lib/api/axiosInstance";
 import { getAllParties, type Party } from "@/lib/api/parties";
 import { useRouter } from "next/navigation";
@@ -24,6 +30,9 @@ export default function CreateReturnPage() {
   const [invoiceAgainst, setInvoiceAgainst] = useState("");
   const [amount, setAmount] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [invoiceDate, setInvoiceDate] = useState<Date>();
+  const [type, setType] = useState<'credit_note' | 'debit_note'>('credit_note');
+  const [billPhotos, setBillPhotos] = useState<UploadedImage[]>([]);
   const [returnedBy, setReturnedBy] = useState("");
   const [users, setUsers] = useState<Party[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,7 +58,7 @@ export default function CreateReturnPage() {
 
   const handleSaveReturn = async (shouldRedirect: boolean = true) => {
     try {
-      if (!invoiceAgainst || !amount || !invoiceNumber || !returnedBy) {
+      if (!invoiceAgainst || !amount || !invoiceNumber || !returnedBy || !invoiceDate) {
         toast({
           variant: "destructive",
           title: "Error",
@@ -60,12 +69,19 @@ export default function CreateReturnPage() {
 
       setIsSubmitting(true);
 
-      const payload = {
+      const payload: any = {
         description: invoiceAgainst,
         amount: parseFloat(amount),
         invoiceNumber,
+        invoiceDate: format(invoiceDate, 'yyyy-MM-dd'),
+        type,
         returnedBy,
       };
+
+      // Add billPhotos if there are any
+      if (billPhotos.length > 0) {
+        payload.billPhotos = billPhotos.map(img => img.filePath);
+      }
 
       const response = await axiosInstance.post('/returns', payload);
 
@@ -83,6 +99,9 @@ export default function CreateReturnPage() {
           setInvoiceAgainst("");
           setAmount("");
           setInvoiceNumber("");
+          setInvoiceDate(undefined);
+          setType('credit_note');
+          setBillPhotos([]);
           setReturnedBy("");
         }
       }
@@ -122,20 +141,67 @@ export default function CreateReturnPage() {
             
             <div>
               <label className="block text-sm font-medium mb-2">
-                Credit Note Number <span className="text-red-500">*</span>
+                Invoice Number <span className="text-red-500">*</span>
               </label>
               <Input 
-                placeholder="Enter Credit Note Number" 
+                placeholder="Enter Invoice Number" 
                 value={invoiceNumber}
                 onChange={(e) => setInvoiceNumber(e.target.value)}
               />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Invoice Date <span className="text-red-500">*</span>
+              </label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !invoiceDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {invoiceDate ? (
+                      format(invoiceDate, "PPP")
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={invoiceDate}
+                    onSelect={setInvoiceDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Type <span className="text-red-500">*</span>
+              </label>
+              <Select value={type} onValueChange={(value: 'credit_note' | 'debit_note') => setType(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="credit_note">Credit Note</SelectItem>
+                  <SelectItem value="debit_note">Debit Note</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4 mt-6">
             <div>
               <label className="block text-sm font-medium mb-2">
-                Returned By <span className="text-red-500">*</span>
+                {type === 'debit_note' ? 'Returned To' : 'Returned By'} <span className="text-red-500">*</span>
               </label>
               <Select value={returnedBy} onValueChange={setReturnedBy}>
                 <SelectTrigger>
@@ -167,6 +233,13 @@ export default function CreateReturnPage() {
                 />
               </div>
             </div>
+          </div>
+
+          <div className="mt-6">
+            <ImageUploader
+              images={billPhotos}
+              onImagesChange={setBillPhotos}
+            />
           </div>
 
           <div className="mt-8 p-4 bg-gray-50 rounded-lg">

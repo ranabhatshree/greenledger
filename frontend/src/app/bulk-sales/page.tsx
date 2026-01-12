@@ -6,8 +6,8 @@ import { Plus, Upload, Search, FileDown, MoreVertical, ArrowUpDown, ArrowUp, Arr
 import { Loader } from "@/components/ui/loader";
 import { format, isAfter, isBefore, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { DateRange } from "react-day-picker";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import {
   getBulkSales,
   deleteBulkSale,
@@ -64,10 +64,8 @@ export default function BulkSalesPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   
   // Column filters
-  const [dateRangeFilter, setDateRangeFilter] = useState<DateRange>({
-    from: undefined,
-    to: undefined,
-  });
+  const [fromDateFilter, setFromDateFilter] = useState<Date | null>(null);
+  const [toDateFilter, setToDateFilter] = useState<Date | null>(null);
   const [uploadedViaFilter, setUploadedViaFilter] = useState<string>("all");
   const [createdByFilter, setCreatedByFilter] = useState<string>("all");
   const [notesFilter, setNotesFilter] = useState<string>("all");
@@ -164,16 +162,16 @@ export default function BulkSalesPage() {
     }
 
     // Date range filter
-    if (dateRangeFilter.from) {
+    if (fromDateFilter) {
       filtered = filtered.filter((sale) => {
         const saleDate = parseISO(sale.invoiceDate);
-        return !isBefore(saleDate, dateRangeFilter.from!);
+        return !isBefore(saleDate, fromDateFilter);
       });
     }
-    if (dateRangeFilter.to) {
+    if (toDateFilter) {
       filtered = filtered.filter((sale) => {
         const saleDate = parseISO(sale.invoiceDate);
-        return !isAfter(saleDate, dateRangeFilter.to!);
+        return !isAfter(saleDate, toDateFilter);
       });
     }
 
@@ -256,7 +254,7 @@ export default function BulkSalesPage() {
     }
 
     return filtered;
-  }, [allBulkSales, debouncedSearchQuery, dateRangeFilter, uploadedViaFilter, createdByFilter, notesFilter, sortField, sortDirection]);
+  }, [allBulkSales, debouncedSearchQuery, fromDateFilter, toDateFilter, uploadedViaFilter, createdByFilter, notesFilter, sortField, sortDirection]);
 
   // Pagination
   const paginatedData = useMemo(() => {
@@ -294,7 +292,8 @@ export default function BulkSalesPage() {
 
   // Clear all filters
   const clearFilters = () => {
-    setDateRangeFilter({ from: undefined, to: undefined });
+    setFromDateFilter(null);
+    setToDateFilter(null);
     setUploadedViaFilter("all");
     setCreatedByFilter("all");
     setNotesFilter("all");
@@ -304,12 +303,12 @@ export default function BulkSalesPage() {
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
-    return dateRangeFilter.from || dateRangeFilter.to || 
+    return fromDateFilter || toDateFilter || 
            uploadedViaFilter !== "all" || 
            createdByFilter !== "all" || 
            notesFilter !== "all" || 
            debouncedSearchQuery.trim() !== "";
-  }, [dateRangeFilter, uploadedViaFilter, createdByFilter, notesFilter, debouncedSearchQuery]);
+  }, [fromDateFilter, toDateFilter, uploadedViaFilter, createdByFilter, notesFilter, debouncedSearchQuery]);
 
   useEffect(() => {
     fetchBulkSales();
@@ -318,7 +317,7 @@ export default function BulkSalesPage() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearchQuery, dateRangeFilter, uploadedViaFilter, createdByFilter, notesFilter, rowsPerPage]);
+  }, [debouncedSearchQuery, fromDateFilter, toDateFilter, uploadedViaFilter, createdByFilter, notesFilter, rowsPerPage]);
 
   const handleDelete = async () => {
     if (!deletingId) return;
@@ -460,15 +459,34 @@ export default function BulkSalesPage() {
         </div>
         <div className="flex gap-2 items-center">
           <Label htmlFor="date-filter" className="text-sm whitespace-nowrap">Invoice Date:</Label>
-          <DateRangePicker
-            from={dateRangeFilter.from}
-            to={dateRangeFilter.to}
-            onSelect={(range) => {
-              if (range) {
-                setDateRangeFilter(range);
-              }
-            }}
-          />
+          <div className="flex items-center gap-2">
+            <Label htmlFor="fromDate" className="text-sm font-medium whitespace-nowrap">
+              From:
+            </Label>
+            <DatePicker
+              selected={fromDateFilter}
+              onChange={(date) => setFromDateFilter(date)}
+              dateFormat="dd/MM/yyyy"
+              placeholderText="From date"
+              className="flex h-9 w-[140px] rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+              maxDate={toDateFilter || undefined}
+              isClearable
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="toDate" className="text-sm font-medium whitespace-nowrap">
+              To:
+            </Label>
+            <DatePicker
+              selected={toDateFilter}
+              onChange={(date) => setToDateFilter(date)}
+              dateFormat="dd/MM/yyyy"
+              placeholderText="To date"
+              className="flex h-9 w-[140px] rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+              minDate={fromDateFilter || undefined}
+              isClearable
+            />
+          </div>
         </div>
         <div className="flex gap-2 items-center">
           <Label htmlFor="uploaded-via-filter" className="text-sm whitespace-nowrap">Uploaded Via:</Label>

@@ -9,10 +9,11 @@ import axiosInstance from "@/lib/api/axiosInstance";
 import { getPartyById, type Party } from "@/lib/api/parties";
 import { format } from "date-fns";
 import { TransactionTable } from "@/components/shared/transaction-table";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { DateRange } from "react-day-picker";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Printer, Pencil } from "lucide-react";
 import Link from "next/link";
 
@@ -30,7 +31,7 @@ interface LedgerEntry {
     crAmount: number;
     amount: string;
     status: string;
-    type: "Sale" | "Expense" | "Purchase" | "Payment" | "Returns" | undefined;
+    type: "Sale" | "Expense" | "Purchase" | "Payment" | "Returns" | "Returns: Credit Note" | "Returns: Debit Note" | undefined;
     id: string;
     invoiceNumber?: string;
     runningBalance?: number;
@@ -42,20 +43,20 @@ export default function PartyDetailsPage() {
     const [loading, setLoading] = useState(true);
     const [party, setParty] = useState<Party | null>(null);
     const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
-    const [dateRange, setDateRange] = useState<DateRange | undefined>({
-        from: new Date(new Date().getFullYear(), 0, 1), // Jan 1st of current year
-        to: new Date(new Date().getFullYear(), 11, 31), // Dec 31st of current year
-    });
-    const [fromDate, setFromDate] = useState<Date>(new Date(new Date().getFullYear(), 0, 1));
-    const [toDate, setToDate] = useState<Date>(new Date(new Date().getFullYear(), 11, 31));
+    const [fromDate, setFromDate] = useState<Date>(new Date(new Date().getFullYear(), 0, 1)); // Jan 1st of current year
+    const [toDate, setToDate] = useState<Date>(new Date(new Date().getFullYear(), 11, 31)); // Dec 31st of current year
 
-    const handleDateRangeChange = (range: DateRange | undefined) => {
-        setDateRange(range);
-        if (range?.from) {
-            setFromDate(range.from);
+    const handleFromDateChange = (date: Date | null) => {
+        if (date) {
+            setFromDate(date);
+            fetchLedgerEntries();
         }
-        if (range?.to) {
-            setToDate(range.to);
+    };
+
+    const handleToDateChange = (date: Date | null) => {
+        if (date) {
+            setToDate(date);
+            fetchLedgerEntries();
         }
     };
 
@@ -116,12 +117,16 @@ export default function PartyDetailsPage() {
         }
     }, [params.id]);
 
+    // Memoize date strings for stable comparison
+    const fromDateStr = useMemo(() => fromDate.toISOString().split('T')[0], [fromDate]);
+    const toDateStr = useMemo(() => toDate.toISOString().split('T')[0], [toDate]);
+
     // Add this effect to refetch when dates change
     useEffect(() => {
         if (params.id) {
             fetchLedgerEntries();
         }
-    }, [fromDate, toDate, params.id]);
+    }, [fromDateStr, toDateStr, params.id]);
 
     // Calculate totals for footer
     const { totalDebit, totalCredit, closingBalance } = useMemo(() => {
@@ -156,13 +161,13 @@ export default function PartyDetailsPage() {
 
     // Format the date range for display
     const formattedDateRange = useMemo(() => {
-        if (!dateRange?.from) return "";
+        if (!fromDate || !toDate) return "";
         
-        const fromStr = format(dateRange.from, "dd/MM/yyyy");
-        const toStr = dateRange.to ? format(dateRange.to, "dd/MM/yyyy") : fromStr;
+        const fromStr = format(fromDate, "dd/MM/yyyy");
+        const toStr = format(toDate, "dd/MM/yyyy");
         
         return `From ${fromStr} to ${toStr}`;
-    }, [dateRange]);
+    }, [fromDate, toDate]);
 
     // Custom date formatter for the transaction table
     const formatTableDate = (dateStr: string) => {
@@ -289,12 +294,34 @@ export default function PartyDetailsPage() {
 
                 <div className="mt-4 lg:mt-6">
                     <div className="flex justify-between items-center mx-4 mb-4 relative z-10 print:hidden">
-                        <DateRangePicker
-                            from={dateRange?.from}
-                            to={dateRange?.to}
-                            onSelect={handleDateRangeChange}
-                            className="w-auto min-w-[300px] max-w-[400px]"
-                        />
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                                <Label htmlFor="fromDate" className="text-sm font-medium whitespace-nowrap">
+                                    From:
+                                </Label>
+                                <DatePicker
+                                    selected={fromDate}
+                                    onChange={handleFromDateChange}
+                                    dateFormat="dd/MM/yyyy"
+                                    placeholderText="From date"
+                                    className="flex h-9 w-[140px] rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                                    maxDate={toDate}
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Label htmlFor="toDate" className="text-sm font-medium whitespace-nowrap">
+                                    To:
+                                </Label>
+                                <DatePicker
+                                    selected={toDate}
+                                    onChange={handleToDateChange}
+                                    dateFormat="dd/MM/yyyy"
+                                    placeholderText="To date"
+                                    className="flex h-9 w-[140px] rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                                    minDate={fromDate}
+                                />
+                            </div>
+                        </div>
                         <Button 
                             onClick={handlePrint}
                             className="flex items-center gap-2 print:hidden"
@@ -321,7 +348,11 @@ export default function PartyDetailsPage() {
                                 accessorKey: "type",
                                 cell: (transaction: any) => {
                                     const type = transaction.type || "Sale";
-                                    return type === "Returns" ? "Returns" : type;
+                                    // Handle the new Returns format
+                                    if (type.startsWith("Returns:")) {
+                                        return type; // Returns: Credit Note or Returns: Debit Note
+                                    }
+                                    return type;
                                 }
                             },
                             {

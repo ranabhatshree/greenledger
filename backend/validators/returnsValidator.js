@@ -1,5 +1,8 @@
 const Joi = require('joi');
 
+// Valid image extensions
+const validImageExtensions = /\.(jpg|jpeg|png|gif)$/i;
+
 // Create Return Validation Schema
 const createReturnSchema = Joi.object({
     amount: Joi.number().positive().required().messages({
@@ -11,6 +14,31 @@ const createReturnSchema = Joi.object({
         'any.required': 'Invoice number is required',
         'string.base': 'Invoice number must be a string',
     }),
+    invoiceDate: Joi.date().required().messages({
+        'any.required': 'Invoice date is required',
+        'date.base': 'Invoice date must be a valid date',
+    }),
+    type: Joi.string()
+        .valid('credit_note', 'debit_note')
+        .default('credit_note')
+        .required()
+        .messages({
+            'any.required': 'Type is required',
+            'any.only': 'Type must be either credit_note or debit_note',
+            'string.base': 'Type must be a string',
+        }),
+    billPhotos: Joi.array()
+        .items(Joi.string().uri().regex(validImageExtensions).messages({
+            'string.base': 'Each bill photo must be a string',
+            'string.uri': 'Each bill photo must be a valid URL',
+            'string.pattern.base': 'Each bill photo must be a valid image URL (jpg, jpeg, png, gif)',
+        }))
+        .max(5)
+        .optional()
+        .allow(null)
+        .messages({
+            'array.max': 'You can upload a maximum of 5 photos',
+        }),
     returnedBy: Joi.string()
         .pattern(/^[0-9a-fA-F]{24}$/)
         .required()
@@ -33,6 +61,28 @@ const updateReturnSchema = Joi.object({
     invoiceNumber: Joi.string().optional().messages({
         'string.base': 'Invoice number must be a string',
     }),
+    invoiceDate: Joi.date().optional().messages({
+        'date.base': 'Invoice date must be a valid date',
+    }),
+    type: Joi.string()
+        .valid('credit_note', 'debit_note')
+        .optional()
+        .messages({
+            'any.only': 'Type must be either credit_note or debit_note',
+            'string.base': 'Type must be a string',
+        }),
+    billPhotos: Joi.array()
+        .items(Joi.string().uri().regex(validImageExtensions).messages({
+            'string.base': 'Each bill photo must be a string',
+            'string.uri': 'Each bill photo must be a valid URL',
+            'string.pattern.base': 'Each bill photo must be a valid image URL (jpg, jpeg, png, gif)',
+        }))
+        .max(5)
+        .optional()
+        .allow(null)
+        .messages({
+            'array.max': 'You can upload a maximum of 5 photos',
+        }),
     returnedBy: Joi.string()
         .pattern(/^[0-9a-fA-F]{24}$/)
         .optional()

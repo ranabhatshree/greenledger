@@ -8,8 +8,8 @@ import { BaseTransaction, TransactionTable } from "@/components/shared/transacti
 import { Loader } from "@/components/ui/loader";
 import Link from "next/link";
 import { format, startOfMonth, endOfMonth } from "date-fns";
-import { DateRange } from "react-day-picker";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -49,10 +49,8 @@ interface ImportTransaction extends BaseTransaction {
 export default function ImportsPage() {
   const [loading, setLoading] = useState(true);
   const [imports, setImports] = useState<ImportTransaction[]>([]);
-  const [dateRange, setDateRange] = useState<DateRange>({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date())
-  });
+  const [fromDate, setFromDate] = useState<Date>(startOfMonth(new Date()));
+  const [toDate, setToDate] = useState<Date>(endOfMonth(new Date()));
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editingImport, setEditingImport] = useState<ImportTransaction | null>(null);
@@ -119,10 +117,17 @@ export default function ImportsPage() {
     }
   };
 
-  const handleDateRangeChange = (newDateRange: DateRange | undefined) => {
-    if (newDateRange) {
-      setDateRange(newDateRange);
-      fetchImports(newDateRange.from, newDateRange.to);
+  const handleFromDateChange = (date: Date | null) => {
+    if (date) {
+      setFromDate(date);
+      fetchImports(date, toDate);
+    }
+  };
+
+  const handleToDateChange = (date: Date | null) => {
+    if (date) {
+      setToDate(date);
+      fetchImports(fromDate, date);
     }
   };
 
@@ -197,7 +202,7 @@ export default function ImportsPage() {
       });
       
       setEditDialogOpen(false);
-      fetchImports(dateRange?.from, dateRange?.to);
+      fetchImports(fromDate, toDate);
     } catch (error) {
       console.error(error);
       toast({
@@ -230,7 +235,7 @@ export default function ImportsPage() {
       
       setDeleteDialogOpen(false);
       setDeletingImportId(null);
-      fetchImports(dateRange?.from, dateRange?.to);
+      fetchImports(fromDate, toDate);
     } catch (error) {
       console.error(error);
       toast({
@@ -254,13 +259,33 @@ export default function ImportsPage() {
       <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Imports</h1>
-          <div className="flex-1 flex justify-center mx-4 relative z-10">
-            <DateRangePicker
-              from={dateRange.from}
-              to={dateRange.to}
-              onSelect={handleDateRangeChange}
-              className="w-auto min-w-[300px] max-w-[400px]"
-            />
+          <div className="flex-1 flex justify-center items-center gap-4 mx-4 relative z-10">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="fromDate" className="text-sm font-medium whitespace-nowrap">
+                From:
+              </Label>
+              <DatePicker
+                selected={fromDate}
+                onChange={handleFromDateChange}
+                dateFormat="dd/MM/yyyy"
+                placeholderText="From date"
+                className="flex h-9 w-[140px] rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                maxDate={toDate}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="toDate" className="text-sm font-medium whitespace-nowrap">
+                To:
+              </Label>
+              <DatePicker
+                selected={toDate}
+                onChange={handleToDateChange}
+                dateFormat="dd/MM/yyyy"
+                placeholderText="To date"
+                className="flex h-9 w-[140px] rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                minDate={fromDate}
+              />
+            </div>
           </div>
           <Link href="/imports/create">
             <Button 

@@ -3,20 +3,15 @@
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
-import { Plus, CalendarIcon, ArrowDownNarrowWide, CrosshairIcon, CheckCircleIcon } from "lucide-react";
+import { Plus, ArrowDownNarrowWide, CrosshairIcon, CheckCircleIcon } from "lucide-react";
 import { BaseTransaction, TransactionTable } from "@/components/shared/transaction-table";
 import { Loader } from "@/components/ui/loader";
 import Link from "next/link";
-import { format, startOfMonth } from "date-fns";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { DateRange } from "react-day-picker";
-import { cn } from "@/lib/utils";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import axiosInstance from "@/lib/api/axiosInstance";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { Label } from "@/components/ui/label";
 
 // Define types for the API response
 interface Payment {
@@ -50,21 +45,19 @@ interface PaymentResponse {
 export default function PurchasesPage() {
   const [loading, setLoading] = useState(true);
   const [payments, setPayments] = useState<BaseTransaction[]>([]);
-  const [date, setDate] = useState<DateRange | undefined>({
-    from: startOfMonth(new Date()),
-    to: new Date(),
-  });
+  const [fromDate, setFromDate] = useState<Date>(startOfMonth(new Date()));
+  const [toDate, setToDate] = useState<Date>(endOfMonth(new Date()));
 
-  const fetchPurchases = async (dateRange?: DateRange) => {
+  const fetchPurchases = async (from?: Date, to?: Date) => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
       
-      if (dateRange?.from) {
-        params.append('from', format(dateRange.from, 'yyyy-MM-dd'));
+      if (from) {
+        params.append('from', format(from, 'yyyy-MM-dd'));
       }
-      if (dateRange?.to) {
-        params.append('to', format(dateRange.to, 'yyyy-MM-dd'));
+      if (to) {
+        params.append('to', format(to, 'yyyy-MM-dd'));
       }
 
       const response = await axiosInstance.get<PaymentResponse>(
@@ -101,9 +94,23 @@ export default function PurchasesPage() {
     }
   };
 
+  const handleFromDateChange = (date: Date | null) => {
+    if (date) {
+      setFromDate(date);
+      fetchPurchases(date, toDate);
+    }
+  };
+
+  const handleToDateChange = (date: Date | null) => {
+    if (date) {
+      setToDate(date);
+      fetchPurchases(fromDate, date);
+    }
+  };
+
   useEffect(() => {
-    fetchPurchases(date);
-  }, [date]);
+    fetchPurchases(fromDate, toDate);
+  }, []);
 
   if (loading) return <Loader />;
 
@@ -113,42 +120,33 @@ export default function PurchasesPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Payments</h1>
           
-          <div className="flex-1 flex justify-center mx-4">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "justify-start text-left font-normal min-w-[300px]",
-                    !date && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date?.from ? (
-                    date.to ? (
-                      <>
-                        {format(date.from, "LLL dd, y")} -{" "}
-                        {format(date.to, "LLL dd, y")}
-                      </>
-                    ) : (
-                      format(date.from, "LLL dd, y")
-                    )
-                  ) : (
-                    <span>Pick a date</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  initialFocus
-                  mode="range"
-                  defaultMonth={date?.from}
-                  selected={date}
-                  onSelect={setDate}
-                  numberOfMonths={2}
-                />
-              </PopoverContent>
-            </Popover>
+          <div className="flex-1 flex justify-center items-center gap-4 mx-4 relative z-10">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="fromDate" className="text-sm font-medium whitespace-nowrap">
+                From:
+              </Label>
+              <DatePicker
+                selected={fromDate}
+                onChange={handleFromDateChange}
+                dateFormat="dd/MM/yyyy"
+                placeholderText="From date"
+                className="flex h-9 w-[140px] rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                maxDate={toDate}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="toDate" className="text-sm font-medium whitespace-nowrap">
+                To:
+              </Label>
+              <DatePicker
+                selected={toDate}
+                onChange={handleToDateChange}
+                dateFormat="dd/MM/yyyy"
+                placeholderText="To date"
+                className="flex h-9 w-[140px] rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                minDate={fromDate}
+              />
+            </div>
           </div>
 
           <Link href="/payments/create">

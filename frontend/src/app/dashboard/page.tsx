@@ -7,10 +7,12 @@ import { TransactionTable } from "@/components/shared/transaction-table";
 import { Loader } from "@/components/ui/loader";
 import { useDashboardStats } from "@/hooks/use-dashboard-stats";
 import SalesChart from "@/components/dashboard/sales-chart";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { fetchTransactions } from "@/data/dashboard-data";
 import { BaseTransaction } from "@/components/shared/transaction-table";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { Label } from "@/components/ui/label";
 import { useSalesChart } from "@/hooks/use-sales-chart";
 import { useVendorsStats } from "@/hooks/use-vendors-stats";
 import { useRouter } from "next/navigation";
@@ -25,14 +27,11 @@ const formatCurrency = (amount: number) => {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
-    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-    to: new Date(),
-  });
+  const [fromDate, setFromDate] = useState<Date>(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const [toDate, setToDate] = useState<Date>(new Date());
 
+  // Memoize dateRange to prevent infinite loops
+  const dateRange = useMemo(() => ({ from: fromDate, to: toDate }), [fromDate, toDate]);
   const { data, isLoading, error } = useDashboardStats(dateRange);
   const { chartData, metrics: salesMetrics, error: salesError } = useSalesChart(dateRange);
   const { vendors } = useVendorsStats(dateRange);
@@ -59,11 +58,15 @@ export default function DashboardPage() {
     checkOnboarding();
   }, [router]);
 
+  // Memoize date strings for stable comparison
+  const fromDateStr = useMemo(() => fromDate.toISOString().split('T')[0], [fromDate]);
+  const toDateStr = useMemo(() => toDate.toISOString().split('T')[0], [toDate]);
+
   useEffect(() => {
     const getTransactions = async () => {
       try {
         setTransactionsLoading(true);
-        const data = await fetchTransactions(dateRange.from, dateRange.to);
+        const data = await fetchTransactions(fromDate, toDate);
         const formattedData = data.map((transaction: BaseTransaction) => ({
           ...transaction,
           date: transaction.invoiceDate ? new Date(transaction.invoiceDate).toLocaleDateString('en-US', {
@@ -81,7 +84,7 @@ export default function DashboardPage() {
     };
 
     getTransactions();
-  }, [dateRange]);
+  }, [fromDateStr, toDateStr]);
 
   if (isCheckingOnboarding || isLoading || transactionsLoading) return <Loader />;
   if (error) return <div className="text-red-500">Error: {error}</div>;
@@ -92,16 +95,32 @@ export default function DashboardPage() {
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">Dashboard Overview</h1>
-          <DateRangePicker
-            from={dateRange.from}
-            to={dateRange.to}
-            onSelect={(range) => {
-              setDateRange({
-                from: range?.from,
-                to: range?.to,
-              });
-            }}
-          />
+          <div className="flex items-center gap-2">
+            <Label htmlFor="fromDate" className="text-sm font-medium whitespace-nowrap">
+              From:
+            </Label>
+            <DatePicker
+              selected={fromDate}
+              onChange={(date) => date && setFromDate(date)}
+              dateFormat="dd/MM/yyyy"
+              placeholderText="From date"
+              className="flex h-9 w-[140px] rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+              maxDate={toDate}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="toDate" className="text-sm font-medium whitespace-nowrap">
+              To:
+            </Label>
+            <DatePicker
+              selected={toDate}
+              onChange={(date) => date && setToDate(date)}
+              dateFormat="dd/MM/yyyy"
+              placeholderText="To date"
+              className="flex h-9 w-[140px] rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+              minDate={fromDate}
+            />
+          </div>
         </div>
       </div>
 

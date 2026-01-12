@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Returns = require('../models/Returns');
 const User = require('../models/User');
 const Party = require('../models/Party');
@@ -11,7 +12,7 @@ const createReturn = async (req, res, next) => {
             return res.status(400).json({ message: error.details[0].message });
         }
 
-        const { amount, invoiceNumber, returnedBy, description } = value;
+        const { amount, invoiceNumber, invoiceDate, type, billPhotos, returnedBy, description } = value;
 
         // Validate if the party exists
         const party = await Party.findOne({ _id: returnedBy, companyId: req.user.companyId });
@@ -22,6 +23,9 @@ const createReturn = async (req, res, next) => {
         const returnEntry = new Returns({
             amount,
             invoiceNumber,
+            invoiceDate,
+            type: type || 'credit_note',
+            billPhotos: billPhotos || [],
             companyId: req.user.companyId, // Set companyId from authenticated user
             createdBy: req.user.id, // Populated by `protect` middleware
             returnedBy,
@@ -49,14 +53,31 @@ const updateReturn = async (req, res, next) => {
             return res.status(404).json({ message: 'Return not found' });
         }
 
-        // Validate returnedBy if it's being updated
-        if (value.returnedBy && value.returnedBy.toString() !== returnEntry.returnedBy.toString()) {
-            const party = await Party.findOne({ 
-                _id: value.returnedBy, 
-                companyId: req.user.companyId 
-            });
-            if (!party) {
-                return res.status(404).json({ message: 'Party not found or does not belong to your company' });
+        // Validate returnedBy if it's being updated (changed)
+        if (value.returnedBy) {
+            const existingReturnedBy = returnEntry.returnedBy.toString();
+            const newReturnedBy = value.returnedBy.toString();
+            
+            if (newReturnedBy !== existingReturnedBy) {
+                // Check if the ObjectId is valid
+                if (!mongoose.Types.ObjectId.isValid(value.returnedBy)) {
+                    return res.status(400).json({ message: 'Invalid party ID format' });
+                }
+                
+                // First check if party exists at all
+                const partyExists = await Party.findById(value.returnedBy);
+                if (!partyExists) {
+                    return res.status(404).json({ message: 'Party not found' });
+                }
+                
+                // Then check if it belongs to the company
+                const party = await Party.findOne({ 
+                    _id: value.returnedBy, 
+                    companyId: req.user.companyId 
+                });
+                if (!party) {
+                    return res.status(404).json({ message: 'Party does not belong to your company' });
+                }
             }
         }
 

@@ -8,9 +8,9 @@ import { Loader } from "@/components/ui/loader";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
 import axiosInstance from "@/lib/api/axiosInstance";
-import { DateRange } from "react-day-picker";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { TransactionTable, BaseTransaction } from "@/components/shared/transaction-table";
 import {
   Dialog,
@@ -53,10 +53,8 @@ interface SaleResponse {
 export default function SalesPage() {
   const [loading, setLoading] = useState(true);
   const [sales, setSales] = useState<SaleTransaction[]>([]);
-  const [dateRange, setDateRange] = useState<DateRange>({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date())
-  });
+  const [fromDate, setFromDate] = useState<Date>(startOfMonth(new Date()));
+  const [toDate, setToDate] = useState<Date>(endOfMonth(new Date()));
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingSale, setEditingSale] = useState<SaleTransaction | null>(null);
   const [editedInvoiceNumber, setEditedInvoiceNumber] = useState("");
@@ -113,10 +111,17 @@ export default function SalesPage() {
     }
   };
 
-  const handleDateRangeChange = (newDateRange: DateRange | undefined) => {
-    if (newDateRange) {
-      setDateRange(newDateRange);
-      fetchSales(newDateRange.from, newDateRange.to);
+  const handleFromDateChange = (date: Date | null) => {
+    if (date) {
+      setFromDate(date);
+      fetchSales(date, toDate);
+    }
+  };
+
+  const handleToDateChange = (date: Date | null) => {
+    if (date) {
+      setToDate(date);
+      fetchSales(fromDate, date);
     }
   };
 
@@ -189,7 +194,7 @@ export default function SalesPage() {
   };
 
   useEffect(() => {
-    fetchSales(dateRange?.from, dateRange?.to);
+    fetchSales(fromDate, toDate);
   }, []);
 
   if (loading) return <Loader />;
@@ -199,13 +204,33 @@ export default function SalesPage() {
       <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Sales</h1>
-          <div className="flex-1 flex justify-center mx-4 relative z-10">
-            <DateRangePicker
-              from={dateRange.from}
-              to={dateRange.to}
-              onSelect={handleDateRangeChange}
-              className="w-auto min-w-[300px] max-w-[400px]"
-            />
+          <div className="flex-1 flex justify-center items-center gap-4 mx-4 relative z-10">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="fromDate" className="text-sm font-medium whitespace-nowrap">
+                From:
+              </Label>
+              <DatePicker
+                selected={fromDate}
+                onChange={handleFromDateChange}
+                dateFormat="dd/MM/yyyy"
+                placeholderText="From date"
+                className="flex h-9 w-[140px] rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                maxDate={toDate}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="toDate" className="text-sm font-medium whitespace-nowrap">
+                To:
+              </Label>
+              <DatePicker
+                selected={toDate}
+                onChange={handleToDateChange}
+                dateFormat="dd/MM/yyyy"
+                placeholderText="To date"
+                className="flex h-9 w-[140px] rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                minDate={fromDate}
+              />
+            </div>
           </div>
           <Link href="/sales/create">
             <Button 

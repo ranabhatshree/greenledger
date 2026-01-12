@@ -40,6 +40,9 @@ router.get(
       // Validate dates
       const startDate = new Date(from);
       const endDate = new Date(to);
+      
+      // Set endDate to end of day to include all transactions on that day
+      endDate.setHours(23, 59, 59, 999);
 
       if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
         return res.status(400).json({
@@ -83,7 +86,14 @@ router.get(
         Returns.exists({ 
           companyId: req.user.companyId, // Filter by company
           returnedBy: partyId,
-          createdAt: { $gte: startDate, $lte: endDate }
+          $or: [
+            { invoiceDate: { $gte: startDate, $lte: endDate } },
+            // Fallback for old records without invoiceDate
+            { 
+              invoiceDate: { $exists: false },
+              createdAt: { $gte: startDate, $lte: endDate }
+            }
+          ]
         })
       ]);
 
@@ -128,9 +138,16 @@ router.get(
           {
             companyId: req.user.companyId, // Filter by company
             returnedBy: partyId,
-            createdAt: { $gte: startDate, $lte: endDate },
+            $or: [
+              { invoiceDate: { $gte: startDate, $lte: endDate } },
+              // Fallback for old records without invoiceDate - use createdAt
+              { 
+                invoiceDate: { $exists: false },
+                createdAt: { $gte: startDate, $lte: endDate }
+              }
+            ]
           },
-          "createdAt invoiceNumber amount description"
+          "invoiceDate invoiceNumber amount type description createdAt"
         ).lean() : []
       ]);
 
@@ -163,15 +180,25 @@ router.get(
           crAmount: payment.receivedOrPaid ? payment.amount : 0 ,
           particulars: payment.receivedOrPaid ? "PAYMENT RECEIVED" : "PAYMENT SENT",
         })),
-        ...returns.map(returnItem => ({
-          date: returnItem.createdAt,
-          invoiceNumber: returnItem.invoiceNumber,
-          amount: returnItem.amount,
-          type: "Returns",
-          drAmount: 0,
-          crAmount: returnItem.amount,
-          particulars: `RETURN: ${returnItem.description}`
-        }))
+        ...returns.map(returnItem => {
+          // Default to credit_note if type is not present
+          const returnType = returnItem.type || 'credit_note';
+          const isCreditNote = returnType === 'credit_note';
+          const typeLabel = isCreditNote ? 'Credit Note' : 'Debit Note';
+          
+          // Use invoiceDate if available, otherwise fallback to createdAt for old records
+          const entryDate = returnItem.invoiceDate || returnItem.createdAt;
+          
+          return {
+            date: entryDate,
+            invoiceNumber: returnItem.invoiceNumber,
+            amount: returnItem.amount,
+            type: `Returns: ${typeLabel}`,
+            drAmount: isCreditNote ? 0 : returnItem.amount, // Debit for debit_note
+            crAmount: isCreditNote ? returnItem.amount : 0, // Credit for credit_note
+            particulars: `RETURNS: ${typeLabel}`
+          };
+        })
       ];
 
       // Sort entries by date

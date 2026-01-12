@@ -47,6 +47,10 @@ export function useReportsData(dateRange: { from: Date | undefined; to: Date | u
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Convert dates to ISO strings for stable dependency comparison
+  const fromDate = dateRange.from?.toISOString();
+  const toDate = dateRange.to?.toISOString();
+
   useEffect(() => {
     const fetchReportsData = async () => {
       if (!dateRange.from || !dateRange.to) {
@@ -58,10 +62,10 @@ export function useReportsData(dateRange: { from: Date | undefined; to: Date | u
         setIsLoading(true);
         setError(null);
 
-        const fromDate = dateRange.from.toISOString().split('T')[0];
-        const toDate = dateRange.to.toISOString().split('T')[0];
+        const fromDateStr = dateRange.from.toISOString().split('T')[0];
+        const toDateStr = dateRange.to.toISOString().split('T')[0];
 
-        const response = await axiosInstance.get(`/stats/reports?from=${fromDate}&to=${toDate}`);
+        const response = await axiosInstance.get(`/stats/reports?from=${fromDateStr}&to=${toDateStr}`);
         
         if (response.data.status === 'success') {
           setData(response.data.data);
@@ -77,7 +81,7 @@ export function useReportsData(dateRange: { from: Date | undefined; to: Date | u
     };
 
     fetchReportsData();
-  }, [dateRange.from, dateRange.to]);
+  }, [fromDate, toDate]);
 
   return { data, isLoading, error };
 } 
