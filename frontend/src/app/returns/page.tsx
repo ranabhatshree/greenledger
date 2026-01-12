@@ -121,7 +121,7 @@ export default function ReturnsPage() {
         invoiceAgainst: returnItem.description || "",
         description: returnItem.description || "",
         invoiceDate: returnItem.invoiceDate,
-        returnType: returnItem.type,
+        returnType: returnItem.type || 'credit_note', // Default to credit_note if type is missing
         billPhotos: returnItem.billPhotos || [],
       }));
 
@@ -378,20 +378,53 @@ export default function ReturnsPage() {
               accessorKey: "date",
             },
             {
+              header: "Type",
+              cell: (transaction: ReturnTransaction) => {
+                const type = transaction.returnType || 'credit_note';
+                return type === 'credit_note' ? 'Credit Note' : 'Debit Note';
+              },
+            },
+            {
               header: "Invoice Against",
               accessorKey: "invoiceAgainst",
             },
             {
-              header: "Credit Note Number",
+              header: "Invoice Number",
               accessorKey: "invoiceNumber",
             },
             {
-              header: "Returned By",
+              header: "Party",
               accessorKey: "returnedBy",
             },
             {
               header: "Amount",
               accessorKey: "amount",
+            },
+            {
+              header: "Photos",
+              cell: (transaction: ReturnTransaction) => (
+                <div className="flex space-x-2">
+                  {transaction.billPhotos && transaction.billPhotos.length > 0 ? (
+                    transaction.billPhotos.map((photoUrl, index) => (
+                      <a 
+                        key={index} 
+                        href={photoUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        aria-label={`View bill photo ${index + 1}`}
+                      >
+                        <img 
+                          src={photoUrl} 
+                          alt={`Bill photo ${index + 1}`} 
+                          className="h-8 w-8 rounded-full border border-gray-300 object-cover" 
+                        />
+                      </a>
+                    ))
+                  ) : (
+                    <span className="text-gray-400 text-sm">No photos</span>
+                  )}
+                </div>
+              ),
             },
             {
               header: "Actions",
@@ -413,6 +446,13 @@ export default function ReturnsPage() {
               value: (row: ReturnTransaction) => row.date,
             },
             {
+              id: "type",
+              value: (row: ReturnTransaction) => {
+                const type = row.returnType || 'credit_note';
+                return type === 'credit_note' ? 'Credit Note' : 'Debit Note';
+              },
+            },
+            {
               id: "invoiceAgainst",
               value: (row: ReturnTransaction) => row.invoiceAgainst || "",
             },
@@ -421,7 +461,7 @@ export default function ReturnsPage() {
               value: (row: ReturnTransaction) => row.invoiceNumber || "",
             },
             {
-              id: "returnedBy",
+              id: "party",
               value: (row: ReturnTransaction) => row.returnedBy || "",
             },
             {
@@ -443,7 +483,7 @@ export default function ReturnsPage() {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="invoiceNumber" className="text-right">
-                Credit Note Number
+                Invoice Number
               </Label>
               <Input
                 id="invoiceNumber"
