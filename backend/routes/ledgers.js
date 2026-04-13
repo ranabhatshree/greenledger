@@ -97,11 +97,24 @@ router.get(
         })
       ]);
 
-      // If no transactions exist at all, return early
+      // Empty range is a valid request; return an empty ledger instead of 404.
       if (!hasPartySales && !hasPartyPurchases && !hasPartyPayments && !hasPartyReturns) {
-        return res.status(404).json({
-          status: "error",
-          message: "No transactions found for this party in the specified date range"
+        return res.status(200).json({
+          status: "success",
+          message: "No transactions found for this party in the specified date range",
+          data: {
+            entries: [],
+            totals: {
+              sales: 0,
+              purchases: 0,
+              payments: 0,
+              returns: 0
+            },
+            dateRange: {
+              from: startDate,
+              to: endDate
+            }
+          }
         });
       }
 

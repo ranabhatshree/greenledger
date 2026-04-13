@@ -49,14 +49,12 @@ export default function PartyDetailsPage() {
     const handleFromDateChange = (date: Date | null) => {
         if (date) {
             setFromDate(date);
-            fetchLedgerEntries();
         }
     };
 
     const handleToDateChange = (date: Date | null) => {
         if (date) {
             setToDate(date);
-            fetchLedgerEntries();
         }
     };
 
@@ -69,15 +67,15 @@ export default function PartyDetailsPage() {
         }
     };
 
-    const fetchLedgerEntries = async () => {
+    const fetchLedgerEntries = async (start: Date = fromDate, end: Date = toDate) => {
         try {
-            const from = format(fromDate, "yyyy-MM-dd");
-            const to = format(toDate, "yyyy-MM-dd");
+            const from = format(start, "yyyy-MM-dd");
+            const to = format(end, "yyyy-MM-dd");
 
             const response = await axiosInstance.get(
                 `/ledgers/party/${params.id}?from=${from}&to=${to}`
             );
-            const entries = response.data.data.entries;
+            const entries = response.data.data.entries || [];
             
             // Calculate running balance
             let balance = 0;
@@ -101,6 +99,7 @@ export default function PartyDetailsPage() {
             });
             setLedgerEntries(formattedEntries);
         } catch (error) {
+            setLedgerEntries([]);
             console.error("Error fetching ledger entries:", error);
         }
     };
