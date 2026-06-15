@@ -19,6 +19,8 @@ export interface Column<T> {
   accessorKey?: keyof T;
   cell?: (item: T, index: number) => ReactNode;
   id?: string;
+  headerClassName?: string;
+  cellClassName?: string;
 }
 
 export interface DataTableProps<T> {
@@ -62,7 +64,9 @@ export const DataTable = <T,>({
             <TableHeader>
               <TableRow>
                 {columns.map((column, index) => (
-                  <TableHead key={index}>{column.header}</TableHead>
+                  <TableHead key={index} className={column.headerClassName}>
+                    {column.header}
+                  </TableHead>
                 ))}
               </TableRow>
             </TableHeader>
@@ -83,7 +87,7 @@ export const DataTable = <T,>({
                 data.map((item, rowIndex) => (
                   <TableRow key={rowIndex}>
                     {columns.map((column, colIndex) => (
-                      <TableCell key={colIndex}>
+                      <TableCell key={colIndex} className={column.cellClassName}>
                         {column.cell
                           ? column.cell(item, rowIndex)
                           : column.accessorKey

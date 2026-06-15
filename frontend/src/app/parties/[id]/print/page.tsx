@@ -6,7 +6,6 @@ import { Loader } from "@/components/ui/loader";
 import axiosInstance from "@/lib/api/axiosInstance";
 import { getPartyById, type Party } from "@/lib/api/parties";
 import { getFiscalYears, type FiscalYear } from "@/lib/api/fiscalYears";
-import { type OpeningBalance } from "@/lib/api/openingBalances";
 import { formatNepaliMiti } from "@/lib/nepali-date";
 import { format } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -43,7 +42,6 @@ function PartyPrintContent() {
     const [loading, setLoading] = useState(true);
     const [party, setParty] = useState<Party | null>(null);
     const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
-    const [openingBalance, setOpeningBalance] = useState<OpeningBalance>({ amount: 0, type: "CR" });
     const [closingBalance, setClosingBalance] = useState<ClosingBalance>({ amount: 0, type: "CR" });
     const [fromDate, setFromDate] = useState<Date | null>(null);
     const [toDate, setToDate] = useState<Date | null>(null);
@@ -120,7 +118,6 @@ function PartyPrintContent() {
             const entries = data.entries || [];
 
             if (resolvedFiscalYearId) {
-                setOpeningBalance(data.opening_balance || { amount: 0, type: "CR" });
                 setClosingBalance(data.closing_balance || { amount: 0, type: "CR" });
 
                 const formattedEntries = entries.map((entry: any, index: number) => ({
@@ -162,14 +159,12 @@ function PartyPrintContent() {
                 };
             });
             setLedgerEntries(formattedEntries);
-            setOpeningBalance({ amount: 0, type: "CR" });
             setClosingBalance({
                 amount: Math.abs(balance),
                 type: balance < 0 ? "DR" : "CR",
             });
         } catch (error) {
             setLedgerEntries([]);
-            setOpeningBalance({ amount: 0, type: "CR" });
             setClosingBalance({ amount: 0, type: "CR" });
             console.error("Error fetching ledger entries:", error);
         }
@@ -242,10 +237,6 @@ function PartyPrintContent() {
                 <h2 className="text-2xl font-bold mt-2">LEDGER</h2>
                 <div className="date-range">(From {formattedDateRange})</div>
                 <div className="mb-4 font-bold">Account : {party.name} {party.panNumber ? `(PAN: ${party.panNumber})` : ""}</div>
-                <div className="mb-4">
-                    Opening Balance: {openingBalance.amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}{" "}
-                    {openingBalance.type}
-                </div>
             </div>
 
             {/* Ledger Table */}

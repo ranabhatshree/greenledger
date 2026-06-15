@@ -110,9 +110,9 @@ export default function PartyDetailsPage() {
             setSelectedFiscalYear(data.fiscal_year || null);
 
             const formattedEntries = entries.map((entry: any, index: number) => ({
-                    id: entry._id || `entry-${index}`,
-                    date: format(new Date(entry.date), "dd MMM yyyy"),
-                    miti: formatNepaliMiti(entry.date),
+                id: entry._id || `entry-${index}`,
+                date: format(new Date(entry.date), "dd MMM yyyy"),
+                miti: formatNepaliMiti(entry.date),
                 invoiceNumber: entry.invoiceNumber,
                 particulars: entry.particulars,
                 drAmount: entry.drAmount || 0,
@@ -382,7 +382,11 @@ export default function PartyDetailsPage() {
                             {
                                 header: "Miti",
                                 accessorKey: "miti",
-                                cell: (transaction: LedgerEntry) => transaction.miti || "",
+                                headerClassName:
+                                    "sticky left-0 z-20 min-w-[110px] bg-card whitespace-nowrap",
+                                cellClassName:
+                                    "sticky left-0 z-10 min-w-[110px] bg-card whitespace-nowrap font-medium",
+                                cell: (transaction: LedgerEntry) => transaction.miti || "—",
                             },
                             {
                                 header: "Date",
