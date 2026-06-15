@@ -1,26 +1,32 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card } from "@/components/ui/card";
 import { Loader } from "@/components/ui/loader";
 import axiosInstance from "@/lib/api/axiosInstance";
 import { getPartyById, type Party } from "@/lib/api/parties";
+import { getFiscalYears, getActiveFiscalYear, type FiscalYear } from "@/lib/api/fiscalYears";
+import { type OpeningBalance } from "@/lib/api/openingBalances";
 import { format } from "date-fns";
 import { TransactionTable } from "@/components/shared/transaction-table";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Printer, Pencil } from "lucide-react";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Printer, Pencil, Wallet } from "lucide-react";
 import Link from "next/link";
-
-// Using Party type from API
+import { OpeningBalanceModal } from "@/components/parties/opening-balance-modal";
 
 interface LedgerEntry {
-    _id: string;
+    _id?: string;
     date: string;
     description: string;
     debit: number;
@@ -29,154 +35,177 @@ interface LedgerEntry {
     particulars: string;
     drAmount: number;
     crAmount: number;
-    amount: string;
+    amount: string | number;
     status: string;
-    type: "Sale" | "Expense" | "Purchase" | "Payment" | "Returns" | "Returns: Credit Note" | "Returns: Debit Note" | undefined;
+    type: string;
     id: string;
     invoiceNumber?: string;
     runningBalance?: number;
+    isOpeningBalance?: boolean;
+}
+
+interface ClosingBalance {
+    amount: number;
+    type: "CR" | "DR";
 }
 
 export default function PartyDetailsPage() {
     const params = useParams();
     const router = useRouter();
+    const partyId = params.id as string;
+
     const [loading, setLoading] = useState(true);
     const [party, setParty] = useState<Party | null>(null);
+    const [fiscalYears, setFiscalYears] = useState<FiscalYear[]>([]);
+    const [selectedFiscalYearId, setSelectedFiscalYearId] = useState<string>("");
+    const [selectedFiscalYear, setSelectedFiscalYear] = useState<FiscalYear | null>(null);
+    const [openingBalance, setOpeningBalance] = useState<OpeningBalance>({ amount: 0, type: "CR" });
+    const [closingBalance, setClosingBalance] = useState<ClosingBalance>({ amount: 0, type: "CR" });
     const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
-    const [fromDate, setFromDate] = useState<Date>(new Date(new Date().getFullYear(), 0, 1)); // Jan 1st of current year
-    const [toDate, setToDate] = useState<Date>(new Date(new Date().getFullYear(), 11, 31)); // Dec 31st of current year
-
-    const handleFromDateChange = (date: Date | null) => {
-        if (date) {
-            setFromDate(date);
-        }
-    };
-
-    const handleToDateChange = (date: Date | null) => {
-        if (date) {
-            setToDate(date);
-        }
-    };
+    const [openingBalanceModalOpen, setOpeningBalanceModalOpen] = useState(false);
 
     const fetchPartyDetails = async () => {
         try {
-            const response = await getPartyById(params.id as string);
+            const response = await getPartyById(partyId);
             setParty(response.party);
         } catch (error) {
             console.error("Error fetching party details:", error);
         }
     };
 
-    const fetchLedgerEntries = async (start: Date = fromDate, end: Date = toDate) => {
+    const fetchFiscalYears = async () => {
         try {
-            const from = format(start, "yyyy-MM-dd");
-            const to = format(end, "yyyy-MM-dd");
+            const [allYears, activeYear] = await Promise.all([
+                getFiscalYears(),
+                getActiveFiscalYear(),
+            ]);
+            setFiscalYears(allYears);
 
+            if (activeYear) {
+                setSelectedFiscalYearId(activeYear._id);
+                setSelectedFiscalYear(activeYear);
+            } else if (allYears.length > 0) {
+                setSelectedFiscalYearId(allYears[0]._id);
+                setSelectedFiscalYear(allYears[0]);
+            }
+        } catch (error) {
+            console.error("Error fetching fiscal years:", error);
+        }
+    };
+
+    const fetchLedgerEntries = useCallback(async (fiscalYearId: string) => {
+        if (!fiscalYearId) return;
+
+        try {
             const response = await axiosInstance.get(
-                `/ledgers/party/${params.id}?from=${from}&to=${to}`
+                `/ledgers/party/${partyId}?fiscal_year_id=${fiscalYearId}`
             );
-            const entries = response.data.data.entries || [];
-            
-            // Calculate running balance
-            let balance = 0;
-            const formattedEntries = entries.map((entry: any) => {
-                const drAmount = entry.drAmount || 0;
-                const crAmount = entry.crAmount || 0;
-                balance = balance + crAmount - drAmount;
-                
-                return {
-                    id: entry._id,
-                    date: format(new Date(entry.date), "dd MMM yyyy"),
-                    invoiceNumber: entry.invoiceNumber,
-                    particulars: entry.particulars,
-                    drAmount,
-                    crAmount,
-                    amount: entry.amount || entry.drAmount || entry.crAmount,
-                    status: 'completed',
-                    type: entry.type,
-                    runningBalance: balance
-                };
-            });
+            const data = response.data.data;
+            const entries = data.entries || [];
+
+            setOpeningBalance(data.opening_balance || { amount: 0, type: "CR" });
+            setClosingBalance(data.closing_balance || { amount: 0, type: "CR" });
+            setSelectedFiscalYear(data.fiscal_year || null);
+
+            const formattedEntries = entries.map((entry: any, index: number) => ({
+                id: entry._id || `entry-${index}`,
+                date: format(new Date(entry.date), "dd MMM yyyy"),
+                invoiceNumber: entry.invoiceNumber,
+                particulars: entry.particulars,
+                drAmount: entry.drAmount || 0,
+                crAmount: entry.crAmount || 0,
+                amount: entry.amount || entry.drAmount || entry.crAmount,
+                status: "completed",
+                type: entry.type,
+                runningBalance: entry.runningBalance,
+                isOpeningBalance: entry.isOpeningBalance,
+            }));
             setLedgerEntries(formattedEntries);
         } catch (error) {
             setLedgerEntries([]);
+            setOpeningBalance({ amount: 0, type: "CR" });
+            setClosingBalance({ amount: 0, type: "CR" });
             console.error("Error fetching ledger entries:", error);
         }
-    };
+    }, [partyId]);
 
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
-            await Promise.all([fetchPartyDetails(), fetchLedgerEntries()]);
+            await Promise.all([fetchPartyDetails(), fetchFiscalYears()]);
             setLoading(false);
         };
 
-        if (params.id) {
+        if (partyId) {
             fetchData();
         }
-    }, [params.id]);
+    }, [partyId]);
 
-    // Memoize date strings for stable comparison
-    const fromDateStr = useMemo(() => fromDate.toISOString().split('T')[0], [fromDate]);
-    const toDateStr = useMemo(() => toDate.toISOString().split('T')[0], [toDate]);
-
-    // Add this effect to refetch when dates change
     useEffect(() => {
-        if (params.id) {
-            fetchLedgerEntries();
+        if (selectedFiscalYearId) {
+            fetchLedgerEntries(selectedFiscalYearId);
         }
-    }, [fromDateStr, toDateStr, params.id]);
+    }, [selectedFiscalYearId, fetchLedgerEntries]);
 
-    // Calculate totals for footer
-    const { totalDebit, totalCredit, closingBalance } = useMemo(() => {
+    const handleFiscalYearChange = (fiscalYearId: string) => {
+        setSelectedFiscalYearId(fiscalYearId);
+        const fy = fiscalYears.find((y) => y._id === fiscalYearId) || null;
+        setSelectedFiscalYear(fy);
+    };
+
+    const handleOpeningBalanceSaved = () => {
+        if (selectedFiscalYearId) {
+            fetchLedgerEntries(selectedFiscalYearId);
+        }
+    };
+
+    const { totalDebit, totalCredit } = useMemo(() => {
         let totalDebit = 0;
         let totalCredit = 0;
-        
-        ledgerEntries.forEach(entry => {
-            totalDebit += entry.drAmount || 0;
-            totalCredit += entry.crAmount || 0;
+
+        ledgerEntries.forEach((entry) => {
+            if (!entry.isOpeningBalance) {
+                totalDebit += entry.drAmount || 0;
+                totalCredit += entry.crAmount || 0;
+            }
         });
-        
-        const closingBalance = totalCredit - totalDebit;
-        
-        return { totalDebit, totalCredit, closingBalance };
+
+        return { totalDebit, totalCredit };
     }, [ledgerEntries]);
 
-    // Footer for the table
     const tableFooter = (
         <TableRow>
             <TableCell colSpan={5} className="text-right font-bold">Total</TableCell>
-            <TableCell className="text-right font-bold">{totalDebit.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</TableCell>
-            <TableCell className="text-right font-bold">{totalCredit.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</TableCell>
+            <TableCell className="text-right font-bold">
+                {totalDebit.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+            </TableCell>
+            <TableCell className="text-right font-bold">
+                {totalCredit.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+            </TableCell>
             <TableCell className="text-right font-bold">
                 <div>Closing Balance</div>
                 <div>
-                    {Math.abs(closingBalance).toLocaleString('en-IN', { maximumFractionDigits: 2 })} 
-                    {closingBalance < 0 ? 'DR' : 'CR'}
+                    {closingBalance.amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}{" "}
+                    {closingBalance.type}
                 </div>
             </TableCell>
         </TableRow>
     );
 
-    // Format the date range for display
     const formattedDateRange = useMemo(() => {
-        if (!fromDate || !toDate) return "";
-        
-        const fromStr = format(fromDate, "dd/MM/yyyy");
-        const toStr = format(toDate, "dd/MM/yyyy");
-        
+        if (!selectedFiscalYear) return "";
+        const fromStr = format(new Date(selectedFiscalYear.fromDate), "dd/MM/yyyy");
+        const toStr = format(new Date(selectedFiscalYear.toDate), "dd/MM/yyyy");
         return `From ${fromStr} to ${toStr}`;
-    }, [fromDate, toDate]);
+    }, [selectedFiscalYear]);
 
-    // Custom date formatter for the transaction table
     const formatTableDate = (dateStr: string) => {
         try {
             const date = new Date(dateStr);
             const day = format(date, "dd");
             const month = format(date, "MMM").substring(0, 3);
             const year = format(date, "yyyy");
-            
-            // Only show in print view
+
             return (
                 <>
                     <span className="hidden print:inline">
@@ -189,16 +218,16 @@ export default function PartyDetailsPage() {
                     <span className="print:hidden">{format(date, "dd MMM yyyy")}</span>
                 </>
             );
-        } catch (e) {
+        } catch {
             return dateStr;
         }
     };
 
     const handlePrint = () => {
-        // Navigate to print page with the same date range
-        const fromStr = fromDate ? format(fromDate, "yyyy-MM-dd") : "";
-        const toStr = toDate ? format(toDate, "yyyy-MM-dd") : "";
-        router.push(`/parties/${params.id}/print?from=${fromStr}&to=${toStr}`);
+        if (!selectedFiscalYear) return;
+        const fromStr = format(new Date(selectedFiscalYear.fromDate), "yyyy-MM-dd");
+        const toStr = format(new Date(selectedFiscalYear.toDate), "yyyy-MM-dd");
+        router.push(`/parties/${partyId}/print?from=${fromStr}&to=${toStr}`);
     };
 
     if (loading) return <Loader />;
@@ -209,7 +238,6 @@ export default function PartyDetailsPage() {
             <div className="flex flex-col gap-6">
                 <h1 className="text-2xl font-bold print:hidden">Party Details</h1>
 
-                {/* Print-only header */}
                 <div className="hidden print:block party-header">
                     <h1>SAMJHANA SUPPLIERS</h1>
                     <h2>H.O.SAINAMAINA-03,MURGIYA, RUPANDEHI, BRANCH:- SHIVARAJ-05,CHANRAUTA, KAPILVASTU</h2>
@@ -218,16 +246,26 @@ export default function PartyDetailsPage() {
                     <div className="text-center">Account : {party.name}</div>
                 </div>
 
-                {/* Regular view party details */}
                 <Card className="p-6 print:hidden">
                     <div className="flex justify-between items-start mb-4">
                         <h2 className="text-xl font-semibold">Party Information</h2>
-                        <Link href={`/parties/${params.id}/edit`}>
-                            <Button variant="outline" size="sm" className="flex items-center gap-2">
-                                <Pencil className="h-4 w-4" />
-                                Edit Party
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex items-center gap-2"
+                                onClick={() => setOpeningBalanceModalOpen(true)}
+                            >
+                                <Wallet className="h-4 w-4" />
+                                Set Opening Balance
                             </Button>
-                        </Link>
+                            <Link href={`/parties/${partyId}/edit`}>
+                                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                                    <Pencil className="h-4 w-4" />
+                                    Edit Party
+                                </Button>
+                            </Link>
+                        </div>
                     </div>
                     <div className="grid grid-cols-2 gap-6">
                         <div>
@@ -295,41 +333,44 @@ export default function PartyDetailsPage() {
                     <div className="flex justify-between items-center mx-4 mb-4 relative z-10 print:hidden">
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-2">
-                                <Label htmlFor="fromDate" className="text-sm font-medium whitespace-nowrap">
-                                    From:
+                                <Label htmlFor="fiscalYear" className="text-sm font-medium whitespace-nowrap">
+                                    Fiscal Year
                                 </Label>
-                                <DatePicker
-                                    selected={fromDate}
-                                    onChange={handleFromDateChange}
-                                    dateFormat="dd/MM/yyyy"
-                                    placeholderText="From date"
-                                    className="flex h-9 w-[140px] rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                                    maxDate={toDate}
-                                />
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Label htmlFor="toDate" className="text-sm font-medium whitespace-nowrap">
-                                    To:
-                                </Label>
-                                <DatePicker
-                                    selected={toDate}
-                                    onChange={handleToDateChange}
-                                    dateFormat="dd/MM/yyyy"
-                                    placeholderText="To date"
-                                    className="flex h-9 w-[140px] rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                                    minDate={fromDate}
-                                />
+                                <Select
+                                    value={selectedFiscalYearId}
+                                    onValueChange={handleFiscalYearChange}
+                                >
+                                    <SelectTrigger id="fiscalYear" className="w-[180px]">
+                                        <SelectValue placeholder="Select fiscal year" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {fiscalYears.map((fy) => (
+                                            <SelectItem key={fy._id} value={fy._id}>
+                                                {fy.title}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
-                        <Button 
+                        <Button
                             onClick={handlePrint}
                             className="flex items-center gap-2 print:hidden"
                             aria-label="Print ledger"
+                            disabled={!selectedFiscalYear}
                         >
                             <Printer className="h-4 w-4" />
                             Print Ledger
                         </Button>
                     </div>
+
+                    <Card className="mx-4 mb-4 p-4 print:hidden">
+                        <div className="text-sm font-medium text-gray-500">Opening Balance</div>
+                        <div className="text-lg font-semibold mt-1">
+                            {openingBalance.amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}{" "}
+                            {openingBalance.type}
+                        </div>
+                    </Card>
 
                     <TransactionTable
                         title="Ledger Entries"
@@ -340,19 +381,12 @@ export default function PartyDetailsPage() {
                             {
                                 header: "Date",
                                 accessorKey: "date",
-                                cell: (transaction: any) => formatTableDate(transaction.date)
+                                cell: (transaction: LedgerEntry) => formatTableDate(transaction.date),
                             },
                             {
                                 header: "Type",
                                 accessorKey: "type",
-                                cell: (transaction: any) => {
-                                    const type = transaction.type || "Sale";
-                                    // Handle the new Returns format
-                                    if (type.startsWith("Returns:")) {
-                                        return type; // Returns: Credit Note or Returns: Debit Note
-                                    }
-                                    return type;
-                                }
+                                cell: (transaction: LedgerEntry) => transaction.type || "Sale",
                             },
                             {
                                 header: "Vch. No.",
@@ -365,68 +399,83 @@ export default function PartyDetailsPage() {
                             {
                                 header: "Narration",
                                 accessorKey: "description",
-                                cell: (transaction: any) => transaction.description || ""
+                                cell: (transaction: LedgerEntry) => transaction.description || "",
                             },
                             {
                                 header: "Debit(Rs.)",
                                 accessorKey: "drAmount",
-                                cell: (transaction: any) => {
+                                cell: (transaction: LedgerEntry) => {
                                     const amount = transaction.drAmount;
-                                    return amount ? amount.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '';
-                                }
+                                    return amount
+                                        ? amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })
+                                        : "";
+                                },
                             },
                             {
                                 header: "Credit(Rs.)",
                                 accessorKey: "crAmount",
-                                cell: (transaction: any) => {
+                                cell: (transaction: LedgerEntry) => {
                                     const amount = transaction.crAmount;
-                                    return amount ? amount.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '';
-                                }
+                                    return amount
+                                        ? amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })
+                                        : "";
+                                },
                             },
                             {
                                 header: "Balance(Rs.)",
                                 accessorKey: "runningBalance",
-                                cell: (transaction: any) => {
+                                cell: (transaction: LedgerEntry) => {
                                     const balance = transaction.runningBalance;
-                                    if (balance === undefined) return '';
-                                    
-                                    // Get absolute value and format it
-                                    const absBalance = Math.abs(balance).toLocaleString('en-IN', { maximumFractionDigits: 2 });
-                                    
-                                    // Add DR or CR suffix based on sign
+                                    if (balance === undefined) return "";
+
+                                    const absBalance = Math.abs(balance).toLocaleString("en-IN", {
+                                        maximumFractionDigits: 2,
+                                    });
                                     return balance < 0 ? `${absBalance} DR` : `${absBalance} CR`;
-                                }
-                            }
+                                },
+                            },
                         ]}
                         searchableColumns={[
                             {
                                 id: "date",
-                                value: (row: any) => row.date,
+                                value: (row: LedgerEntry) => row.date,
                             },
                             {
                                 id: "invoiceNumber",
-                                value: (row: any) => row.invoiceNumber || "",
-                            }
+                                value: (row: LedgerEntry) => row.invoiceNumber || "",
+                            },
                         ]}
                     />
-                    
-                    {/* Print-only footer */}
+
                     <div className="hidden print:block ledger-footer">
                         <div className="text-right font-bold">
                             <span>Grand Total</span>
-                            <span className="ml-10">{totalDebit.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
-                            <span className="ml-10">{totalCredit.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                            <span className="ml-10">
+                                {totalDebit.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                            </span>
+                            <span className="ml-10">
+                                {totalCredit.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                            </span>
                         </div>
                         <div className="text-right mt-2">
                             <span className="font-bold">Closing Balance</span>
                             <span className="ml-10 font-bold">
-                                {Math.abs(closingBalance).toLocaleString('en-IN', { maximumFractionDigits: 2 })} 
-                                {closingBalance < 0 ? 'DR' : 'CR'}
+                                {closingBalance.amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}{" "}
+                                {closingBalance.type}
                             </span>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <OpeningBalanceModal
+                open={openingBalanceModalOpen}
+                onClose={() => setOpeningBalanceModalOpen(false)}
+                onSuccess={handleOpeningBalanceSaved}
+                partyId={partyId}
+                fiscalYears={fiscalYears}
+                selectedFiscalYearId={selectedFiscalYearId}
+            />
         </AppLayout>
     );
-} 
+}

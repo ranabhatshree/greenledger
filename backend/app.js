@@ -57,6 +57,8 @@ app.use('/api/parties', partiesRoutes);
 app.use('/api/helper', helperRoute);
 app.use('/api/stats', statsRoute);
 app.use('/api/ledgers', ledgersRoute);
+app.use('/api/fiscal-years', require('./routes/fiscalYears'));
+app.use('/api/opening-balances', require('./routes/openingBalances'));
 app.use('/api/bulk-sales', require('./routes/bulkSalesRoutes'));
 app.use('/api/imports', require('./routes/importRoutes'));
 

@@ -17,6 +17,7 @@ import { Loader } from "@/components/ui/loader";
 import { getCompanySettings, updateCompanySettings, uploadCompanyLogo, type UpdateCompanyData } from "@/lib/api/companySettings";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, X } from "lucide-react";
+import { FiscalYearManager } from "@/components/settings/fiscal-year-manager";
 
 const CURRENCIES = ['NPR', 'USD', 'EUR', 'GBP', 'INR'];
 const TIMEZONES = [
@@ -449,6 +450,8 @@ export default function SettingsPage() {
             </Button>
           </div>
         </Card>
+
+        <FiscalYearManager />
       </div>
     </AppLayout>
   );
