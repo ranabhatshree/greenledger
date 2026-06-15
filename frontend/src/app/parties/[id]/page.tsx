@@ -227,7 +227,9 @@ export default function PartyDetailsPage() {
         if (!selectedFiscalYear) return;
         const fromStr = format(new Date(selectedFiscalYear.fromDate), "yyyy-MM-dd");
         const toStr = format(new Date(selectedFiscalYear.toDate), "yyyy-MM-dd");
-        router.push(`/parties/${partyId}/print?from=${fromStr}&to=${toStr}`);
+        router.push(
+            `/parties/${partyId}/print?from=${fromStr}&to=${toStr}&fiscal_year_id=${selectedFiscalYearId}`
+        );
     };
 
     if (loading) return <Loader />;

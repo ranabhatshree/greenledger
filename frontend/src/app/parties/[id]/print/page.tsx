@@ -5,6 +5,8 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Loader } from "@/components/ui/loader";
 import axiosInstance from "@/lib/api/axiosInstance";
 import { getPartyById, type Party } from "@/lib/api/parties";
+import { getFiscalYears, type FiscalYear } from "@/lib/api/fiscalYears";
+import { type OpeningBalance } from "@/lib/api/openingBalances";
 import { format } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 
@@ -20,10 +22,16 @@ interface LedgerEntry {
     crAmount: number;
     amount: string;
     status: string;
-    type: "Sale" | "Expense" | "Purchase" | "Payment" | "Returns" | "Returns: Credit Note" | "Returns: Debit Note" | "Rcpt" | undefined;
+    type: string;
     id: string;
     invoiceNumber?: string;
     runningBalance?: number;
+    isOpeningBalance?: boolean;
+}
+
+interface ClosingBalance {
+    amount: number;
+    type: "CR" | "DR";
 }
 
 function PartyPrintContent() {
@@ -33,6 +41,8 @@ function PartyPrintContent() {
     const [loading, setLoading] = useState(true);
     const [party, setParty] = useState<Party | null>(null);
     const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
+    const [openingBalance, setOpeningBalance] = useState<OpeningBalance>({ amount: 0, type: "CR" });
+    const [closingBalance, setClosingBalance] = useState<ClosingBalance>({ amount: 0, type: "CR" });
     const [fromDate, setFromDate] = useState<Date | null>(null);
     const [toDate, setToDate] = useState<Date | null>(null);
     const [businessInfo, setBusinessInfo] = useState({
@@ -67,41 +77,96 @@ function PartyPrintContent() {
         }
     };
 
-    const fetchLedgerEntries = async (start: Date = fromDate as Date, end: Date = toDate as Date) => {
+    const resolveFiscalYearId = async (
+        fiscalYearIdParam: string | null,
+        from: string,
+        to: string
+    ): Promise<string | null> => {
+        if (fiscalYearIdParam) return fiscalYearIdParam;
+
+        try {
+            const fiscalYears = await getFiscalYears();
+            const matchingYear = fiscalYears.find((fy: FiscalYear) => {
+                const fyFrom = format(new Date(fy.fromDate), "yyyy-MM-dd");
+                const fyTo = format(new Date(fy.toDate), "yyyy-MM-dd");
+                return fyFrom === from && fyTo === to;
+            });
+            return matchingYear?._id || null;
+        } catch {
+            return null;
+        }
+    };
+
+    const fetchLedgerEntries = async (
+        start: Date,
+        end: Date,
+        fiscalYearId?: string | null
+    ) => {
         try {
             if (!start || !end) return;
-            
+
             const from = format(start, "yyyy-MM-dd");
             const to = format(end, "yyyy-MM-dd");
+            const resolvedFiscalYearId = fiscalYearId || await resolveFiscalYearId(null, from, to);
 
-            const response = await axiosInstance.get(
-                `/ledgers/party/${params.id}?from=${from}&to=${to}`
-            );
-            const entries = response.data.data.entries || [];
-            
-            // Calculate running balance
+            const url = resolvedFiscalYearId
+                ? `/ledgers/party/${params.id}?fiscal_year_id=${resolvedFiscalYearId}`
+                : `/ledgers/party/${params.id}?from=${from}&to=${to}`;
+
+            const response = await axiosInstance.get(url);
+            const data = response.data.data;
+            const entries = data.entries || [];
+
+            if (resolvedFiscalYearId) {
+                setOpeningBalance(data.opening_balance || { amount: 0, type: "CR" });
+                setClosingBalance(data.closing_balance || { amount: 0, type: "CR" });
+
+                const formattedEntries = entries.map((entry: any, index: number) => ({
+                    id: entry._id || `entry-${index}`,
+                    date: format(new Date(entry.date), "dd MMM yyyy"),
+                    invoiceNumber: entry.invoiceNumber,
+                    particulars: entry.particulars,
+                    drAmount: entry.drAmount || 0,
+                    crAmount: entry.crAmount || 0,
+                    amount: entry.amount || entry.drAmount || entry.crAmount,
+                    status: "completed",
+                    type: entry.type || "Sale",
+                    runningBalance: entry.runningBalance,
+                    isOpeningBalance: entry.isOpeningBalance,
+                }));
+                setLedgerEntries(formattedEntries);
+                return;
+            }
+
             let balance = 0;
-            const formattedEntries = entries.map((entry: any) => {
+            const formattedEntries = entries.map((entry: any, index: number) => {
                 const drAmount = entry.drAmount || 0;
                 const crAmount = entry.crAmount || 0;
                 balance = balance + crAmount - drAmount;
-                
+
                 return {
-                    id: entry._id,
+                    id: entry._id || `entry-${index}`,
                     date: format(new Date(entry.date), "dd MMM yyyy"),
                     invoiceNumber: entry.invoiceNumber,
                     particulars: entry.particulars,
                     drAmount,
                     crAmount,
                     amount: entry.amount || entry.drAmount || entry.crAmount,
-                    status: 'completed',
+                    status: "completed",
                     type: entry.type || "Sale",
-                    runningBalance: balance
+                    runningBalance: balance,
                 };
             });
             setLedgerEntries(formattedEntries);
+            setOpeningBalance({ amount: 0, type: "CR" });
+            setClosingBalance({
+                amount: Math.abs(balance),
+                type: balance < 0 ? "DR" : "CR",
+            });
         } catch (error) {
             setLedgerEntries([]);
+            setOpeningBalance({ amount: 0, type: "CR" });
+            setClosingBalance({ amount: 0, type: "CR" });
             console.error("Error fetching ledger entries:", error);
         }
     };
@@ -127,34 +192,38 @@ function PartyPrintContent() {
 
     useEffect(() => {
         if (!fromDate || !toDate || !params.id) return;
-        
+
+        const fiscalYearIdParam = searchParams.get("fiscal_year_id");
+
         const fetchData = async () => {
             setLoading(true);
-            await Promise.all([fetchPartyDetails(), fetchLedgerEntries()]);
+            await Promise.all([
+                fetchPartyDetails(),
+                fetchLedgerEntries(fromDate, toDate, fiscalYearIdParam),
+            ]);
             setLoading(false);
-            
-            // Auto print after loading
+
             setTimeout(() => {
                 window.print();
             }, 1000);
         };
 
         fetchData();
-    }, [params.id, fromDate, toDate]);
+    }, [params.id, fromDate, toDate, searchParams]);
 
     // Calculate totals for footer
-    const { totalDebit, totalCredit, closingBalance } = useMemo(() => {
+    const { totalDebit, totalCredit } = useMemo(() => {
         let totalDebit = 0;
         let totalCredit = 0;
-        
-        ledgerEntries.forEach(entry => {
-            totalDebit += entry.drAmount || 0;
-            totalCredit += entry.crAmount || 0;
+
+        ledgerEntries.forEach((entry) => {
+            if (!entry.isOpeningBalance) {
+                totalDebit += entry.drAmount || 0;
+                totalCredit += entry.crAmount || 0;
+            }
         });
-        
-        const closingBalance = totalCredit - totalDebit;
-        
-        return { totalDebit, totalCredit, closingBalance };
+
+        return { totalDebit, totalCredit };
     }, [ledgerEntries]);
 
     if (loading) return <Loader />;
@@ -169,6 +238,10 @@ function PartyPrintContent() {
                 <h2 className="text-2xl font-bold mt-2">LEDGER</h2>
                 <div className="date-range">(From {formattedDateRange})</div>
                 <div className="mb-4 font-bold">Account : {party.name} {party.panNumber ? `(PAN: ${party.panNumber})` : ""}</div>
+                <div className="mb-4">
+                    Opening Balance: {openingBalance.amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}{" "}
+                    {openingBalance.type}
+                </div>
             </div>
 
             {/* Ledger Table */}
@@ -215,8 +288,8 @@ function PartyPrintContent() {
                         <TableCell className="text-right font-bold">
                             <div>Closing Balance</div>
                             <div>
-                                {Math.abs(closingBalance).toLocaleString('en-IN', { maximumFractionDigits: 2 })} 
-                                {closingBalance < 0 ? 'DR' : 'CR'}
+                                {closingBalance.amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}{" "}
+                                {closingBalance.type}
                             </div>
                         </TableCell>
                     </TableRow>
