@@ -310,10 +310,6 @@ export default function PartyDetailsPage() {
                             <label className="block text-sm font-medium text-gray-500">Party Margin</label>
                             <p className="mt-1">{party.partyMargin}%</p>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-500">Closing Balance</label>
-                            <p className="mt-1">NPR {party.closingBalance.toLocaleString()}</p>
-                        </div>
                         {party.website && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-500">Website</label>
