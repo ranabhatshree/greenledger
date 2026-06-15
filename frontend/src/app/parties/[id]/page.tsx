@@ -24,6 +24,7 @@ import {
 import { Printer, Pencil, Wallet } from "lucide-react";
 import Link from "next/link";
 import { OpeningBalanceModal } from "@/components/parties/opening-balance-modal";
+import { formatNepaliMiti } from "@/lib/nepali-date";
 
 interface LedgerEntry {
     _id?: string;
@@ -42,6 +43,7 @@ interface LedgerEntry {
     invoiceNumber?: string;
     runningBalance?: number;
     isOpeningBalance?: boolean;
+    miti?: string;
 }
 
 interface ClosingBalance {
@@ -108,8 +110,9 @@ export default function PartyDetailsPage() {
             setSelectedFiscalYear(data.fiscal_year || null);
 
             const formattedEntries = entries.map((entry: any, index: number) => ({
-                id: entry._id || `entry-${index}`,
-                date: format(new Date(entry.date), "dd MMM yyyy"),
+                    id: entry._id || `entry-${index}`,
+                    date: format(new Date(entry.date), "dd MMM yyyy"),
+                    miti: formatNepaliMiti(entry.date),
                 invoiceNumber: entry.invoiceNumber,
                 particulars: entry.particulars,
                 drAmount: entry.drAmount || 0,
@@ -175,7 +178,7 @@ export default function PartyDetailsPage() {
 
     const tableFooter = (
         <TableRow>
-            <TableCell colSpan={5} className="text-right font-bold">Total</TableCell>
+            <TableCell colSpan={6} className="text-right font-bold">Total</TableCell>
             <TableCell className="text-right font-bold">
                 {totalDebit.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
             </TableCell>
@@ -376,6 +379,11 @@ export default function PartyDetailsPage() {
                         showType={true}
                         footer={tableFooter}
                         columns={[
+                            {
+                                header: "Miti",
+                                accessorKey: "miti",
+                                cell: (transaction: LedgerEntry) => transaction.miti || "",
+                            },
                             {
                                 header: "Date",
                                 accessorKey: "date",

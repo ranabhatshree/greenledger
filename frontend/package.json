@@ -30,6 +30,7 @@
     "js-cookie": "^3.0.5",
     "jspdf": "^4.0.0",
     "lucide-react": "^0.469.0",
+    "nepali-date-library": "^1.1.14",
     "next": "^16.0.8",
     "react": "^18.2.0",
     "react-datepicker": "^9.1.0",

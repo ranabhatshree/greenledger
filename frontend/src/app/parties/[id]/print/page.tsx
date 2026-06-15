@@ -7,6 +7,7 @@ import axiosInstance from "@/lib/api/axiosInstance";
 import { getPartyById, type Party } from "@/lib/api/parties";
 import { getFiscalYears, type FiscalYear } from "@/lib/api/fiscalYears";
 import { type OpeningBalance } from "@/lib/api/openingBalances";
+import { formatNepaliMiti } from "@/lib/nepali-date";
 import { format } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 
@@ -27,6 +28,7 @@ interface LedgerEntry {
     invoiceNumber?: string;
     runningBalance?: number;
     isOpeningBalance?: boolean;
+    miti?: string;
 }
 
 interface ClosingBalance {
@@ -124,6 +126,7 @@ function PartyPrintContent() {
                 const formattedEntries = entries.map((entry: any, index: number) => ({
                     id: entry._id || `entry-${index}`,
                     date: format(new Date(entry.date), "dd MMM yyyy"),
+                    miti: formatNepaliMiti(entry.date),
                     invoiceNumber: entry.invoiceNumber,
                     particulars: entry.particulars,
                     drAmount: entry.drAmount || 0,
@@ -147,6 +150,7 @@ function PartyPrintContent() {
                 return {
                     id: entry._id || `entry-${index}`,
                     date: format(new Date(entry.date), "dd MMM yyyy"),
+                    miti: formatNepaliMiti(entry.date),
                     invoiceNumber: entry.invoiceNumber,
                     particulars: entry.particulars,
                     drAmount,
@@ -248,6 +252,7 @@ function PartyPrintContent() {
             <Table className="condensed-table">
                 <TableHeader>
                     <TableRow>
+                        <TableHead className="text-center">Miti</TableHead>
                         <TableHead className="text-center">Date</TableHead>
                         <TableHead>Type</TableHead>
                         <TableHead className="text-center">Vch. No.</TableHead>
@@ -260,6 +265,7 @@ function PartyPrintContent() {
                 <TableBody>
                     {ledgerEntries.map((entry, index) => (
                         <TableRow key={index} className="compact-row">
+                            <TableCell className="p-1 text-center">{entry.miti}</TableCell>
                             <TableCell className="p-1">{formatTableDate(entry.date)}</TableCell>
                             <TableCell className="p-1">
                                 {entry.type?.startsWith("Returns:") ? entry.type : entry.type || "Sale"}
@@ -282,7 +288,7 @@ function PartyPrintContent() {
                 </TableBody>
                 <TableFooter>
                     <TableRow>
-                        <TableCell colSpan={4} className="text-right font-bold">Total</TableCell>
+                        <TableCell colSpan={5} className="text-right font-bold">Total</TableCell>
                         <TableCell className="text-right font-bold">{totalDebit.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</TableCell>
                         <TableCell className="text-right font-bold">{totalCredit.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</TableCell>
                         <TableCell className="text-right font-bold">
