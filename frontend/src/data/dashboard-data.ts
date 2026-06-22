@@ -10,8 +10,6 @@ import {
   FileSpreadsheet,
   Banknote,
   RotateCcw,
-  Upload,
-  Globe,
 } from "lucide-react";
 import axiosInstance from "@/lib/api/axiosInstance";
 
@@ -19,13 +17,11 @@ import axiosInstance from "@/lib/api/axiosInstance";
 export const menuItems: MenuItem[] = [
   { icon: BarChart3, label: "Dashboard", href: "/dashboard", active: true },
   { icon: DollarSign, label: "Sales", href: "/sales" },
-  { icon: Upload, label: "Bulk Sales", href: "/bulk-sales" },
   { icon: Users, label: "Parties", href: "/parties" },
   { icon: ArrowUpRight, label: "Expenses", href: "/expenses" },
   { icon: Truck, label: "Purchases", href: "/purchases" },
   { icon: Banknote, label: "Payments", href: "/payments" },
   { icon: RotateCcw, label: "Returns", href: "/returns" },
-  { icon: Globe, label: "Imports", href: "/imports" },
   { icon: Package, label: "Products", href: "/products" },
   { icon: FileSpreadsheet, label: "Reports", href: "/reports" },
   { icon: Settings, label: "Settings", href: "/settings" },

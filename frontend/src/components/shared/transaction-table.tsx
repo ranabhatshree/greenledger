@@ -45,6 +45,7 @@ interface TransactionTableProps {
     value: (row: BaseTransaction) => string;
   }[];
   transactionType?: string;
+  showSearch?: boolean;
   footer?: React.ReactNode;
 }
 
@@ -72,6 +73,7 @@ export function TransactionTable({
   showType, 
   columns: customColumns,
   searchableColumns: customSearchableColumns,
+  showSearch = true,
   footer
 }: TransactionTableProps) {
   const defaultColumns: Column<BaseTransaction>[] = [
@@ -190,6 +192,7 @@ export function TransactionTable({
       searchPlaceholder="Search..."
       searchValue={searchValue}
       onSearchChange={setSearchValue}
+      showSearch={showSearch}
       footer={footer}
     />
   );

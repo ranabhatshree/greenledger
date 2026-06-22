@@ -95,31 +95,33 @@ export default function DashboardPage() {
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">Dashboard Overview</h1>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="fromDate" className="text-sm font-medium whitespace-nowrap">
-              From:
-            </Label>
-            <DatePicker
-              selected={fromDate}
-              onChange={(date) => date && setFromDate(date)}
-              dateFormat="dd/MM/yyyy"
-              placeholderText="From date"
-              className="flex h-9 w-[140px] rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-              maxDate={toDate}
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="toDate" className="text-sm font-medium whitespace-nowrap">
-              To:
-            </Label>
-            <DatePicker
-              selected={toDate}
-              onChange={(date) => date && setToDate(date)}
-              dateFormat="dd/MM/yyyy"
-              placeholderText="To date"
-              className="flex h-9 w-[140px] rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-              minDate={fromDate}
-            />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="fromDate" className="text-sm font-medium whitespace-nowrap">
+                From:
+              </Label>
+              <DatePicker
+                selected={fromDate}
+                onChange={(date) => date && setFromDate(date)}
+                dateFormat="dd/MM/yyyy"
+                placeholderText="From date"
+                className="flex h-9 w-[140px] rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                maxDate={toDate}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="toDate" className="text-sm font-medium whitespace-nowrap">
+                To:
+              </Label>
+              <DatePicker
+                selected={toDate}
+                onChange={(date) => date && setToDate(date)}
+                dateFormat="dd/MM/yyyy"
+                placeholderText="To date"
+                className="flex h-9 w-[140px] rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                minDate={fromDate}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -184,6 +186,7 @@ export default function DashboardPage() {
           title="Recent Transactions"
           data={transactions}
           showType={true}
+          showSearch={false}
           columns={[
             {
               header: "Type",

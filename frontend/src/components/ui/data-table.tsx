@@ -30,6 +30,7 @@ export interface DataTableProps<T> {
   searchPlaceholder?: string;
   searchValue?: string;
   onSearchChange?: (value: string) => void;
+  showSearch?: boolean;
   loading?: boolean;
   footer?: ReactNode;
 }
@@ -41,6 +42,7 @@ export const DataTable = <T,>({
   searchPlaceholder = "Search...",
   searchValue,
   onSearchChange,
+  showSearch = true,
   loading,
   footer
 }: DataTableProps<T>) => {
@@ -48,17 +50,19 @@ export const DataTable = <T,>({
     <Card className="overflow-hidden p-4 lg:p-6 print:p-0 print:shadow-none print:border-0">
       <div className="flex flex-col gap-4">
         {title && <h2 className="text-lg font-semibold print:hidden">{title}</h2>}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center print:hidden">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input
-              className="pl-10" 
-              placeholder={searchPlaceholder}
-              value={searchValue}
-              onChange={(e) => onSearchChange?.(e.target.value)}
-            />
+        {showSearch && (
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center print:hidden">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Input
+                className="pl-10" 
+                placeholder={searchPlaceholder}
+                value={searchValue}
+                onChange={(e) => onSearchChange?.(e.target.value)}
+              />
+            </div>
           </div>
-        </div>
+        )}
         <div className="mt-4 overflow-x-auto print:mt-0">
           <Table>
             <TableHeader>

@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { cn, resolveMediaUrl } from "@/lib/utils";
 
 interface EditHistoryLog {
   description: string;
@@ -264,6 +264,32 @@ export default function SalesPage() {
               {
                 header: "Amount",
                 accessorKey: "amount",
+              },
+              {
+                header: "Bill Photos",
+                cell: (transaction) => (
+                  <div className="flex space-x-2">
+                    {transaction.billPhotos && transaction.billPhotos.length > 0 ? (
+                      transaction.billPhotos.map((photoUrl, index) => (
+                        <a
+                          key={index}
+                          href={resolveMediaUrl(photoUrl)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`View bill photo ${index + 1}`}
+                        >
+                          <img
+                            src={resolveMediaUrl(photoUrl)}
+                            alt={`Bill photo ${index + 1}`}
+                            className="h-8 w-8 rounded border border-gray-300 object-cover"
+                          />
+                        </a>
+                      ))
+                    ) : (
+                      <span className="text-gray-400 text-sm">—</span>
+                    )}
+                  </div>
+                ),
               },
               {
                 header: "Invoice",

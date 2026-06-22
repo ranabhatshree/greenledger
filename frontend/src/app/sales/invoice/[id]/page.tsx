@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ImageIcon } from "lucide-react";
-import { getBusinessName, getBusinessLogo, getThemeColor, formatCurrency } from "@/lib/utils";
+import { getBusinessName, getBusinessLogo, getThemeColor, formatCurrency, resolveMediaUrl } from "@/lib/utils";
 import { getCompanySettings, type Company } from "@/lib/api/companySettings";
 import Link from "next/link";
 
@@ -212,24 +212,26 @@ export default function InvoiceViewPage() {
               <div className="mb-8 print:hidden">
                 <h3 className="font-medium mb-3">Bill Photos:</h3>
                 <div className="flex flex-wrap gap-4">
-                  {sale.billPhotos.map((photo, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setSelectedImage(photo)}
-                      className="relative group h-24 w-24 rounded-lg overflow-hidden border border-gray-200 hover:border-primary/50 transition-colors"
-                      aria-label={`View bill photo ${index + 1}`}
-                    >
-                      <Image
-                        src={photo}
-                        alt={`Bill photo ${index + 1}`}
-                        fill
-                        className="object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <ImageIcon className="w-6 h-6 text-white" />
-                      </div>
-                    </button>
-                  ))}
+                  {sale.billPhotos.map((photo, index) => {
+                    const photoUrl = resolveMediaUrl(photo);
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => setSelectedImage(photoUrl)}
+                        className="relative group h-24 w-24 rounded-lg overflow-hidden border border-gray-200 hover:border-primary/50 transition-colors"
+                        aria-label={`View bill photo ${index + 1}`}
+                      >
+                        <img
+                          src={photoUrl}
+                          alt={`Bill photo ${index + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <ImageIcon className="w-6 h-6 text-white" />
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -325,12 +327,11 @@ export default function InvoiceViewPage() {
         <DialogContent className="max-w-3xl">
           <DialogTitle>Bill Photo</DialogTitle>
           {selectedImage && (
-            <div className="relative h-[80vh]">
-              <Image
+            <div className="flex justify-center">
+              <img
                 src={selectedImage}
                 alt="Bill photo"
-                fill
-                className="object-contain"
+                className="max-h-[80vh] max-w-full object-contain"
               />
             </div>
           )}

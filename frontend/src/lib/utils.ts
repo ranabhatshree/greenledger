@@ -20,3 +20,10 @@ export const getBusinessLogo = () => {
 export const getThemeColor = () => {
   return process.env.NEXT_PUBLIC_THEME_COLOR || "#1e40af";
 };
+
+export const resolveMediaUrl = (url: string) => {
+  if (!url) return url;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || '';
+  return `${base}${url.startsWith('/') ? '' : '/'}${url}`;
+};

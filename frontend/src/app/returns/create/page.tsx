@@ -12,12 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
 import { ImageUploader, type UploadedImage } from "@/components/shared/image-uploader";
+import { FormDatePicker } from "@/components/shared/form-date-picker";
 import axiosInstance from "@/lib/api/axiosInstance";
 import { getAllParties, type Party } from "@/lib/api/parties";
 import { useRouter } from "next/navigation";
@@ -154,32 +151,7 @@ export default function CreateReturnPage() {
               <label className="block text-sm font-medium mb-2">
                 Invoice Date <span className="text-red-500">*</span>
               </label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !invoiceDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {invoiceDate ? (
-                      format(invoiceDate, "PPP")
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={invoiceDate}
-                    onSelect={setInvoiceDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <FormDatePicker selected={invoiceDate} onChange={setInvoiceDate} />
             </div>
             
             <div>
