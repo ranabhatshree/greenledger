@@ -6,7 +6,41 @@ const {
   updateSaleSchema,
 } = require("../validators/salesValidator");
 const Product = require("../models/Products");
-const mongoose = require("mongoose")
+const mongoose = require("mongoose");
+
+const VAT_MULTIPLIER = 1.13;
+
+const calculateTotalsFromGrandTotal = (grandTotal) => {
+  const total = parseFloat(grandTotal);
+  const taxableAmount = parseFloat((total / VAT_MULTIPLIER).toFixed(2));
+  const vatAmount = parseFloat((total - taxableAmount).toFixed(2));
+
+  return {
+    subTotal: taxableAmount,
+    discountAmount: 0,
+    taxableAmount,
+    vatAmount,
+    grandTotal: total,
+  };
+};
+
+const calculateTotalsFromItems = (subTotal, discountPercentage = 0) => {
+  const roundedSubTotal = parseFloat(subTotal.toFixed(2));
+  const discountAmount = parseFloat(
+    (roundedSubTotal * (discountPercentage / 100)).toFixed(2)
+  );
+  const taxableAmount = parseFloat((roundedSubTotal - discountAmount).toFixed(2));
+  const vatAmount = parseFloat((taxableAmount * 0.13).toFixed(2));
+  const grandTotal = parseFloat((taxableAmount + vatAmount).toFixed(2));
+
+  return {
+    subTotal: roundedSubTotal,
+    discountAmount,
+    taxableAmount,
+    vatAmount,
+    grandTotal,
+  };
+};
 
 // Create Sale
 const createSale = async (req, res, next) => {
@@ -60,19 +94,24 @@ const createSale = async (req, res, next) => {
     );
 
     // Calculate totals
-    let subTotal = 0;
+    let totals;
+    let directEntryData = directEntry || {};
+
     if (updatedItems.length > 0) {
-      subTotal = updatedItems.reduce((sum, item) => sum + item.amount, 0);
+      const subTotal = updatedItems.reduce((sum, item) => sum + item.amount, 0);
+      totals = calculateTotalsFromItems(subTotal, discountPercentage);
     } else if (directEntry) {
-      subTotal = directEntry.amount/1.13;
+      totals = calculateTotalsFromGrandTotal(directEntry.amount);
+      directEntryData = {
+        ...directEntry,
+        amount: totals.grandTotal,
+      };
+    } else {
+      totals = calculateTotalsFromItems(0, discountPercentage);
     }
 
-    subTotal = parseFloat(subTotal.toFixed(2));
-
-    const discountAmount = parseFloat(((subTotal * (discountPercentage / 100))).toFixed(2));
-    const taxableAmount = parseFloat((subTotal - discountAmount).toFixed(2));
-    const vatAmount = parseFloat((taxableAmount * 0.13).toFixed(2)); // Calculate VAT (13%)
-    const grandTotal = parseFloat((taxableAmount + vatAmount).toFixed(2));
+    const { subTotal, discountAmount, taxableAmount, vatAmount, grandTotal } =
+      totals;
 
     // Create a new sale
     const sale = new Sales({
@@ -80,7 +119,7 @@ const createSale = async (req, res, next) => {
       invoiceDate,
       billingParty,
       items: updatedItems, // Use updated items with names
-      directEntry: directEntry || {},
+      directEntry: directEntryData,
       billPhotos: billPhotos || [],
       note,
       discountPercentage,
@@ -194,50 +233,26 @@ const updateSale = async (req, res, next) => {
         })
       );
       
-      // Calculate totals from items
-      subTotal = parseFloat(updatedItems.reduce((sum, item) => sum + item.amount, 0).toFixed(2));
-      discountAmount = parseFloat(((subTotal * (discPercentage / 100))).toFixed(2));
-      taxableAmount = parseFloat((subTotal - discountAmount).toFixed(2));
-      vatAmount = parseFloat((taxableAmount * 0.13).toFixed(2)); // Calculate VAT (13%)
-      grandTotal = parseFloat((taxableAmount + vatAmount).toFixed(2));
+      const itemSubTotal = updatedItems.reduce((sum, item) => sum + item.amount, 0);
+      ({ subTotal, discountAmount, taxableAmount, vatAmount, grandTotal } =
+        calculateTotalsFromItems(itemSubTotal, discPercentage));
     } 
     // CASE 2: Direct Entry update
     else if (isDirectEntryUpdate) {
+      const entryGrandTotal =
+        providedGrandTotal ?? directEntry?.amount;
 
-      // Use provided grandTotal if available
-      if (providedGrandTotal) {
-        grandTotal = parseFloat(providedGrandTotal);
-        
-        // Calculate backward from grandTotal
-        // Assuming VAT is 13% and using the formula: grandTotal = taxableAmount * 1.13
-        taxableAmount = parseFloat((grandTotal / 1.13).toFixed(2));
-        vatAmount = parseFloat((grandTotal - taxableAmount).toFixed(2));
-        
-        // For direct entry with provided grandTotal, reset discount
-        discountAmount = 0;
-        subTotal = taxableAmount; // For direct entry, subTotal equals taxableAmount (no discount)
-        
-        // Update the directEntry object
+      if (entryGrandTotal != null) {
+        ({ subTotal, discountAmount, taxableAmount, vatAmount, grandTotal } =
+          calculateTotalsFromGrandTotal(entryGrandTotal));
+
         updatedDirectEntry = {
           ...updatedDirectEntry,
           amount: grandTotal,
-          description: directEntry?.description || updatedDirectEntry.description || "Direct Entry"
-        };
-      } 
-      // Otherwise use the directEntry.amount if provided
-      else if (directEntry && directEntry.amount) {
-        const entryAmount = parseFloat(directEntry.amount);
-        
-        subTotal = parseFloat((entryAmount / 1.13).toFixed(2));
-        discountAmount = parseFloat(((subTotal * (discPercentage / 100))).toFixed(2));
-        taxableAmount = parseFloat((subTotal - discountAmount).toFixed(2));
-        vatAmount = parseFloat((taxableAmount * 0.13).toFixed(2));
-        grandTotal = parseFloat((taxableAmount + vatAmount).toFixed(2));
-        
-        // Update the directEntry object
-        updatedDirectEntry = {
-          ...updatedDirectEntry,
-          ...directEntry
+          description:
+            directEntry?.description ||
+            updatedDirectEntry.description ||
+            "Direct Entry",
         };
       }
     }
