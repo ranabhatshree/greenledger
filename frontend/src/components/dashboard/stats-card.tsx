@@ -24,7 +24,7 @@ export function StatsCard({
     <Card className="p-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-gray-600">{title}</p>
+          <p className="text-xs text-muted-foreground">{title}</p>
           <p className="mt-2 text-2xl font-bold">{value}</p>
           <p className={`mt-1 text-xs ${isPositive ? "text-green-600" : "text-red-600"}`}>
             {change}

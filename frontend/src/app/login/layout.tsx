@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { AuthThemeBar } from '@/components/theme/auth-theme-bar';
 
 export const metadata: Metadata = {
   title: 'Login - GreenLedger',
@@ -15,7 +16,8 @@ export default function LoginLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
+      <AuthThemeBar />
       {children}
     </div>
   );

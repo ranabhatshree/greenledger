@@ -1,4 +1,5 @@
 'use client';
+
 import {
   LineChart,
   Line,
@@ -10,28 +11,43 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { format } from 'date-fns';
+import { useTheme } from 'next-themes';
+import { Card } from '@/components/ui/card';
 
 interface SalesChartProps {
-  data: any[]; // Replace with your data type
+  data: any[];
   isLoading: boolean;
   error: string | null;
 }
 
 const SalesChart = ({ data, isLoading, error }: SalesChartProps) => {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+
+  const axisColor = isDark ? '#9ca3af' : '#6B7280';
+  const gridColor = isDark ? '#374151' : '#f0f0f0';
+  const tooltipStyle = {
+    backgroundColor: isDark ? '#1f2937' : 'white',
+    border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+    borderRadius: '6px',
+    boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+    color: isDark ? '#f9fafb' : '#111827',
+  };
+
   if (error) {
     return (
-      <div className="w-full bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Sales Overview</h3>
+      <Card className="w-full p-6">
+        <h3 className="text-lg font-medium text-foreground mb-4">Sales Overview</h3>
         <div className="flex items-center justify-center h-[400px]">
           <p className="text-red-500 text-sm">{error}</p>
         </div>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="w-full bg-white rounded-lg shadow-sm p-6">
-      <h3 className="text-lg font-medium text-gray-900 mb-6">Sales Overview</h3>
+    <Card className="w-full p-6">
+      <h3 className="text-lg font-medium text-foreground mb-6">Sales Overview</h3>
       <div className="h-[400px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
@@ -43,25 +59,18 @@ const SalesChart = ({ data, isLoading, error }: SalesChartProps) => {
               bottom: 5,
             }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
             <XAxis
               dataKey="date"
               tickFormatter={(value) => format(new Date(value), 'MMM d')}
-              tick={{ fill: '#6B7280' }}
-              tickLine={{ stroke: '#6B7280' }}
+              tick={{ fill: axisColor }}
+              tickLine={{ stroke: axisColor }}
             />
             <YAxis
-              tick={{ fill: '#6B7280' }}
-              tickLine={{ stroke: '#6B7280' }}
+              tick={{ fill: axisColor }}
+              tickLine={{ stroke: axisColor }}
             />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'white',
-                border: '1px solid #e5e7eb',
-                borderRadius: '6px',
-                boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-              }}
-            />
+            <Tooltip contentStyle={tooltipStyle} />
             <Legend />
             <Line
               type="monotone"
@@ -74,8 +83,8 @@ const SalesChart = ({ data, isLoading, error }: SalesChartProps) => {
           </LineChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </Card>
   );
 };
 
-export default SalesChart; 
+export default SalesChart;

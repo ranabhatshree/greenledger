@@ -344,6 +344,51 @@
   padding: 0.25rem 0.5rem;
 }
 
+.dark .rdp-month,
+.dark .rdp-months,
+.dark .calendar-container {
+  background-color: hsl(var(--card));
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.dark .rdp-head_cell,
+.dark .rdp-button {
+  color: hsl(var(--muted-foreground));
+}
+
+.dark .rdp-button:hover:not([disabled]):not(.rdp-day_selected),
+.dark .rdp-nav_button:hover {
+  background-color: hsl(var(--accent)) !important;
+}
+
+.dark .react-datepicker {
+  background-color: hsl(var(--card));
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.dark .react-datepicker__header {
+  background-color: hsl(var(--muted));
+  border-color: hsl(var(--border));
+}
+
+.dark .react-datepicker__current-month,
+.dark .react-datepicker__day-name,
+.dark .react-datepicker__day {
+  color: hsl(var(--foreground));
+}
+
+.dark .react-datepicker__day:hover {
+  background-color: hsl(var(--accent));
+}
+
+.dark .react-datepicker__day--selected,
+.dark .react-datepicker__day--keyboard-selected {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
 /* Calendar container */
 .calendar-container {
   position: absolute;

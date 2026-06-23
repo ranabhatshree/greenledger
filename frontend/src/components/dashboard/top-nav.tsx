@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,10 +13,10 @@ import { useAppDispatch } from "@/lib/hooks";
 import { logout } from "@/lib/features/auth/authSlice";
 import { useRouter } from "next/navigation";
 import { getThemeColor } from "@/lib/utils";
-import Image from "next/image";
 import { getProfile, type UserProfile } from "@/lib/api/userProfile";
 import { getCompanySettings } from "@/lib/api/companySettings";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 interface TopNavProps {
   onMenuClick: () => void;
@@ -99,7 +98,7 @@ export function TopNav({ onMenuClick, onToggleCollapse, isCollapsed }: TopNavPro
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-40 border-b bg-white px-4 py-4 lg:px-6">
+    <nav className="fixed top-0 left-0 right-0 z-40 border-b border-border bg-background px-4 py-4 lg:px-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           {/* Mobile menu button */}
@@ -112,39 +111,16 @@ export function TopNav({ onMenuClick, onToggleCollapse, isCollapsed }: TopNavPro
             <Menu className="h-5 w-5" />
           </Button>
           
-          {/* Desktop sidebar collapse button */}
-          {/* <Button
-            variant="ghost"
-            size="icon"
-            className="hidden lg:flex"
-            onClick={onToggleCollapse}
-            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {isCollapsed ? (
-              <PanelLeftOpen className="h-5 w-5" />
-            ) : (
-              <PanelLeftClose className="h-5 w-5" />
-            )}
-          </Button> */}
-          
           <h1 className="text-xl font-bold" style={{ color: getThemeColor() }}>
             {companyName}
           </h1>
-          <div className="relative ml-4 hidden lg:block"> 
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input
-              className="w-96 pl-10"
-              placeholder="Search..."
-              type="search"
-              style={{ borderColor: getThemeColor() }}
-            />
-          </div>
         </div>
         <div className="flex items-center gap-4 px-2">
+          <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               {isLoadingUser ? (
-                <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse cursor-pointer" />
+                <div className="h-10 w-10 rounded-full bg-muted animate-pulse cursor-pointer" />
               ) : (
                 <Avatar className="h-10 w-10 cursor-pointer">
                   <AvatarImage 
@@ -155,7 +131,7 @@ export function TopNav({ onMenuClick, onToggleCollapse, isCollapsed }: TopNavPro
                       e.currentTarget.style.display = 'none';
                     }}
                   />
-                  <AvatarFallback className="bg-gray-200 text-gray-600 text-sm">
+                  <AvatarFallback className="bg-muted text-muted-foreground text-sm">
                     {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>

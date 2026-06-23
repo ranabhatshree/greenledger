@@ -6,6 +6,7 @@ import CompanyForm from '@/components/onboarding/CompanyForm';
 import ProfileUpload from '@/components/onboarding/ProfileUpload';
 import { checkOnboardingComplete } from '@/lib/utils/onboarding';
 import { Loader } from '@/components/ui/loader';
+import { AuthThemeBar } from '@/components/theme/auth-theme-bar';
 
 export default function OnboardingPage() {
     const [step, setStep] = useState<'company' | 'profile'>('company');
@@ -38,8 +39,9 @@ export default function OnboardingPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-            <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-8">
+        <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
+            <AuthThemeBar />
+            <div className="w-full max-w-md rounded-lg border border-border bg-card shadow-lg p-8">
                 {step === 'company' && (
                     <CompanyForm onComplete={() => setStep('profile')} />
                 )}

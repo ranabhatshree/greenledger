@@ -39,7 +39,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen flex flex-col bg-gray-50">
+      <div className="min-h-screen flex flex-col bg-muted/40 dark:bg-background">
         <header className="print:hidden">
           <TopNav 
             onMenuClick={() => setSidebarOpen(!sidebarOpen)} 

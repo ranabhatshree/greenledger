@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { ArrowRight, CheckCircle, Github, Leaf } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { ThemeToggle } from '@/components/theme/theme-toggle'
 
 export default function HomePage() {
   const [isVisible, setIsVisible] = useState(false)
@@ -13,14 +14,15 @@ export default function HomePage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white text-gray-800">
+    <div className="min-h-screen bg-gradient-to-b from-green-50 to-background text-foreground dark:from-background dark:to-muted/30">
       <header className="container mx-auto p-6">
         <nav className="flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <Leaf className="h-8 w-8 text-green-600" />
-            <span className="text-2xl font-bold text-green-800">GreenLedger</span>
+            <span className="text-2xl font-bold text-green-800 dark:text-green-400">GreenLedger</span>
           </div>
           <div className="flex items-center space-x-4">
+            <ThemeToggle />
             <Link 
               href="https://github.com/ranabhatshree/greenledger" 
               target="_blank" 
@@ -62,25 +64,25 @@ export default function HomePage() {
         <section id="features" className="py-16">
           <h2 className="text-3xl font-bold mb-12 text-center text-green-800">Key Features</h2>
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+            <div className="bg-card p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-border">
               <CheckCircle className="h-12 w-12 text-green-600 mb-4" />
-              <h3 className="text-xl font-semibold mb-2 text-green-700">Intuitive Bookkeeping</h3>
-              <p className="text-gray-600">Streamline your financial processes with our user-friendly interface. GreenLedger simplifies complex accounting tasks, making it easy for businesses of all sizes to maintain accurate records.</p>
+              <h3 className="text-xl font-semibold mb-2 text-green-700 dark:text-green-400">Intuitive Bookkeeping</h3>
+              <p className="text-muted-foreground">Streamline your financial processes with our user-friendly interface. GreenLedger simplifies complex accounting tasks, making it easy for businesses of all sizes to maintain accurate records.</p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+            <div className="bg-card p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-border">
               <CheckCircle className="h-12 w-12 text-green-600 mb-4" />
-              <h3 className="text-xl font-semibold mb-2 text-green-700">Comprehensive Reporting</h3>
-              <p className="text-gray-600">Generate detailed financial reports with just a few clicks. From balance sheets to cash flow statements, GreenLedger provides the insights you need to make informed business decisions.</p>
+              <h3 className="text-xl font-semibold mb-2 text-green-700 dark:text-green-400">Comprehensive Reporting</h3>
+              <p className="text-muted-foreground">Generate detailed financial reports with just a few clicks. From balance sheets to cash flow statements, GreenLedger provides the insights you need to make informed business decisions.</p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+            <div className="bg-card p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-border">
               <CheckCircle className="h-12 w-12 text-green-600 mb-4" />
-              <h3 className="text-xl font-semibold mb-2 text-green-700">Sustainability Metrics</h3>
-              <p className="text-gray-600">Track your organization's environmental impact alongside financial performance. GreenLedger integrates eco-friendly metrics, helping you measure and improve your sustainability efforts.</p>
+              <h3 className="text-xl font-semibold mb-2 text-green-700 dark:text-green-400">Sustainability Metrics</h3>
+              <p className="text-muted-foreground">Track your organization's environmental impact alongside financial performance. GreenLedger integrates eco-friendly metrics, helping you measure and improve your sustainability efforts.</p>
             </div>
           </div>
         </section>
 
-        <section className="py-16 bg-green-100 rounded-lg">
+        <section className="py-16 bg-green-100 dark:bg-green-950/40 rounded-lg">
           <div className="text-center">
             <h2 className="text-3xl font-bold mb-6 text-green-800">Open Source</h2>
             <p className="text-xl mb-8 text-green-700">

@@ -151,18 +151,18 @@ export default function LoginPage() {
       </div>
       
       {/* Right side - Login Form */}
-      <div className="w-full md:w-1/2 flex items-center justify-center p-6 bg-gray-50">
-        <Card className="w-full max-w-md p-8 shadow-lg border-0">
+      <div className="w-full md:w-1/2 flex items-center justify-center p-6 bg-muted/40">
+        <Card className="w-full max-w-md p-8 shadow-lg">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-green-800">Welcome Back</h1>
-            <p className="text-sm text-gray-500 mt-2">
+            <h1 className="text-3xl font-bold text-green-700 dark:text-green-400">Welcome Back</h1>
+            <p className="text-sm text-muted-foreground mt-2">
               Enter your credentials to access your account
             </p>
           </div>
           
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="text-sm font-medium text-foreground">
                 Email
               </label>
               <Input
@@ -180,7 +180,7 @@ export default function LoginPage() {
             
             <div className="space-y-2 relative">
               <div className="flex items-center justify-between">
-                <label htmlFor="password" className="text-sm font-medium text-gray-700">
+                <label htmlFor="password" className="text-sm font-medium text-foreground">
                   Password
                 </label>
                 <Link href="/forgot-password" className="text-xs text-green-600 hover:text-green-800">
@@ -223,7 +223,7 @@ export default function LoginPage() {
               {isLoading ? "Signing in..." : "Sign in"}
             </Button>
             
-            <div className="text-center text-sm text-gray-500">
+            <div className="text-center text-sm text-muted-foreground">
               Don't have an account?{" "}
               <Link href="/register" className="text-green-600 hover:text-green-800 font-medium">
                 Sign up

@@ -51,7 +51,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed }: SidebarProps) {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 max-h-screen overflow-y-auto transform border-r bg-white transition-all duration-200 ease-in-out lg:static lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 max-h-screen overflow-y-auto transform border-r border-border bg-card transition-all duration-200 ease-in-out lg:static lg:translate-x-0",
           // Mobile styles
           isOpen ? "translate-x-0" : "-translate-x-full",
           // Desktop styles  
@@ -82,8 +82,8 @@ export function Sidebar({ isOpen, onClose, isCollapsed }: SidebarProps) {
                 className={cn(
                   "flex items-center rounded-lg transition-colors relative group",
                   isActive
-                    ? "bg-gray-100 text-gray-900"
-                    : "text-gray-600 hover:bg-gray-100",
+                    ? "bg-accent text-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
                   isCollapsed && !isHovered 
                     ? "justify-center px-3 py-3" 
                     : "gap-3 px-3 py-2"
@@ -102,7 +102,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed }: SidebarProps) {
                 
                 {/* Tooltip for collapsed state */}
                 {isCollapsed && !isHovered && (
-                  <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                  <div className="absolute left-full ml-2 px-2 py-1 bg-popover text-popover-foreground border border-border text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 shadow-md">
                     {item.label}
                   </div>
                 )}
@@ -115,7 +115,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed }: SidebarProps) {
       {/* Mobile sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 max-h-screen overflow-y-auto transform border-r bg-white px-6 py-8 transition-transform duration-200 ease-in-out lg:hidden",
+          "fixed inset-y-0 left-0 z-50 w-64 max-h-screen overflow-y-auto transform border-r border-border bg-card px-6 py-8 transition-transform duration-200 ease-in-out lg:hidden",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
