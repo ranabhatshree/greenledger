@@ -70,7 +70,7 @@ export const ImageUploader = ({
       <label className="block text-sm font-medium mb-2">Attach Images</label>
       <div 
         className={cn(
-          "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer",
+          "border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer",
           isUploading && "opacity-50 cursor-not-allowed"
         )}
         onClick={() => !isUploading && document.getElementById('file-upload')?.click()}
@@ -85,13 +85,13 @@ export const ImageUploader = ({
         />
         {isUploading ? (
           <div className="flex items-center justify-center gap-2">
-            <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm text-gray-500">Uploading...</span>
+            <div className="w-5 h-5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-muted-foreground">Uploading...</span>
           </div>
         ) : (
           <>
-            <ImageIcon className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-            <p className="text-sm text-gray-500">
+            <ImageIcon className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
               Click to upload an image
             </p>
           </>

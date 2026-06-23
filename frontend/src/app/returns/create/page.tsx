@@ -131,7 +131,7 @@ export default function CreateReturnPage() {
                 value={invoiceAgainst}
                 onChange={(e) => setInvoiceAgainst(e.target.value)}
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Enter the invoice numbers this return is against
               </p>
             </div>
@@ -214,7 +214,7 @@ export default function CreateReturnPage() {
             />
           </div>
 
-          <div className="mt-8 p-4 bg-gray-50 rounded-lg">
+          <div className="mt-8 p-4 bg-muted rounded-lg border border-border">
             <div className="flex justify-between items-center">
               <span className="text-lg font-semibold">Total Return Amount:</span>
               <span className="text-xl font-bold">
@@ -247,8 +247,8 @@ export default function CreateReturnPage() {
             </Button>
           </div>
           
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-            <p className="text-sm text-blue-800">
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/40 rounded-lg border-l-4 border-blue-400 dark:border-blue-600">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
               <strong>Note:</strong> This return entry will generate a credit note against the specified invoice(s). 
               Ensure all details are accurate before saving.
             </p>

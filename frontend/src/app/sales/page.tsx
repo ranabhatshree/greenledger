@@ -243,8 +243,7 @@ export default function SalesPage() {
           </Link>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <TransactionTable
+        <TransactionTable
             title="Sales Transactions"
             data={sales}
             showType={false}
@@ -281,12 +280,12 @@ export default function SalesPage() {
                           <img
                             src={resolveMediaUrl(photoUrl)}
                             alt={`Bill photo ${index + 1}`}
-                            className="h-8 w-8 rounded border border-gray-300 object-cover"
+                            className="h-8 w-8 rounded border border-border object-cover"
                           />
                         </a>
                       ))
                     ) : (
-                      <span className="text-gray-400 text-sm">—</span>
+                      <span className="text-muted-foreground text-sm">—</span>
                     )}
                   </div>
                 ),
@@ -298,7 +297,7 @@ export default function SalesPage() {
                     className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold)}`}
                   >
                     <Link href={`/sales/invoice/${transaction.id}`} target="_blank">
-                      <FileInputIcon className="mr-2 h-4 w-4" />
+                      <FileInputIcon className="mr-2 h-4 w-4 text-foreground" />
                     </Link>
                   </span>
                 ),
@@ -307,19 +306,25 @@ export default function SalesPage() {
                 header: "Actions",
                 cell: (transaction) => (
                   <div className="flex items-center space-x-2">
-                    <span
-                      className="inline-flex rounded-full px-2 py-1 text-xs font-semibold cursor-pointer"
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
                       onClick={() => handleEditClick(transaction as BaseTransaction)}
+                      aria-label="Edit sale"
                     >
-                      <PencilIcon className="h-4 w-4 text-black" />
-                    </span>
+                      <PencilIcon className="h-4 w-4" />
+                    </Button>
                     {(transaction.editHistoryLogs?.length ?? 0) > 0 ? (
-                      <span
-                        className="inline-flex rounded-full px-2 py-1 text-xs font-semibold cursor-pointer"
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
                         onClick={() => handleHistoryClick(transaction)}
+                        aria-label="View edit history"
                       >
-                        <HistoryIcon className="h-4 w-4 text-black" />
-                      </span>
+                        <HistoryIcon className="h-4 w-4" />
+                      </Button>
                     ) : null}
                   </div>
                 ),
@@ -344,7 +349,6 @@ export default function SalesPage() {
               },
             ]}
           />
-        </div>
       </div>
 
       <Dialog open={editDialogOpen} onOpenChange={(open) => {
@@ -435,21 +439,21 @@ export default function SalesPage() {
                   <div key={log._id} className="relative pl-6 pb-6">
                     {/* Timeline connector */}
                     {index < historyLogs.length - 1 && (
-                      <div className="absolute left-2 top-4 h-full w-0.5 bg-gray-200"></div>
+                      <div className="absolute left-2 top-4 h-full w-0.5 bg-border"></div>
                     )}
                     {/* Timeline dot */}
                     <div className="absolute left-0 top-1.5 h-4 w-4 rounded-full bg-green-500"></div>
                     {/* Log content */}
-                    <div className="bg-gray-50 p-3 rounded-lg">
+                    <div className="bg-muted p-3 rounded-lg">
                       <p className="text-sm">{log.description}</p>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         {new Date(log.editedAt).toLocaleString()}
                       </p>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-center text-gray-500 py-4">No edit history available.</p>
+                <p className="text-center text-muted-foreground py-4">No edit history available.</p>
               )}
             </div>
           </div>

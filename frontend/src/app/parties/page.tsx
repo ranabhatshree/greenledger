@@ -68,8 +68,9 @@ export default function PartiesPage() {
               key={tab}
               variant="outline"
               className={cn(
-                "bg-white",
-                activeTab === tab && "bg-blue-50 text-blue-600"
+                activeTab === tab
+                  ? "bg-primary/15 text-primary border-primary/40 hover:bg-primary/20"
+                  : "bg-background text-foreground hover:bg-accent"
               )}
               onClick={() => setActiveTab(tab)}
               aria-label={`Filter by ${tab}`}

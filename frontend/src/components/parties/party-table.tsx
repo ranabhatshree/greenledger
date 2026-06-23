@@ -65,21 +65,21 @@ export function PartyTable({ data, filterType }: PartyTableProps) {
       header: "Name",
       cell: (party) => (
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-gray-100 p-2">
+          <div className="h-10 w-10 rounded-full bg-muted p-2">
             {party.type === "Vendor" ? (
-              <Building2 className="h-6 w-6 text-gray-600" />
+              <Building2 className="h-6 w-6 text-muted-foreground" />
             ) : (
-              <User className="h-6 w-6 text-gray-600" />
+              <User className="h-6 w-6 text-muted-foreground" />
             )}
           </div>
           <div>
             <Link 
               href={`/parties/${party.id}`}
-              className="text-blue-600 hover:underline"
+              className="text-blue-600 hover:underline dark:text-blue-400"
             >
               <p className="font-medium">{party.name}</p>
             </Link>
-            <p className="text-sm text-gray-600">{party.email}</p>
+            <p className="text-sm text-muted-foreground">{party.email}</p>
           </div>
         </div>
       ),
@@ -89,7 +89,9 @@ export function PartyTable({ data, filterType }: PartyTableProps) {
       cell: (party) => (
         <span className={cn(
           "inline-flex rounded-full px-2 py-1 text-xs font-semibold",
-          party.type === "Vendor" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"
+          party.type === "Vendor"
+            ? "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300"
+            : "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
         )}>
           {party.type}
         </span>
@@ -116,7 +118,9 @@ export function PartyTable({ data, filterType }: PartyTableProps) {
       cell: (party) => (
         <span className={cn(
           "inline-flex rounded-full px-2 py-1 text-xs font-semibold",
-          party.status === "Active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+          party.status === "Active"
+            ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300"
+            : "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
         )}>
           {party.status}
         </span>
